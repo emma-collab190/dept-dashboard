@@ -2362,16 +2362,17 @@ function cbInsertHr(){
   document.execCommand('insertHTML',false,'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
 }
 
-// ── 表格輔助：取得游標所在 td/th ──
-function cbGetCurrentCell(){
-  const sel=window.getSelection();
-  if(!sel||!sel.rangeCount)return null;
-  let node=sel.getRangeAt(0).commonAncestorContainer;
-  while(node&&node!==document){
-    if(node.nodeName==='TD'||node.nodeName==='TH')return node;
-    node=node.parentNode;
+// ── 表格輔助：記住最後點選的儲存格 ──
+let cbLastCell = null;
+document.addEventListener('mousedown', function(e){
+  let node = e.target;
+  while(node && node !== document){
+    if(node.nodeName==='TD'||node.nodeName==='TH'){ cbLastCell=node; return; }
+    node = node.parentNode;
   }
-  return null;
+});
+function cbGetCurrentCell(){
+  return cbLastCell;
 }
 function cbGetCurrentTable(){
   const cell=cbGetCurrentCell();
