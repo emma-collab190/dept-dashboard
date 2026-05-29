@@ -2065,10 +2065,8 @@ function renderContribTable(el){
     const statusTxt='<span style="color:#c8873a">📝 目前顯示本機編輯版本</span>';
     el.innerHTML=`
       <div class="contrib-toolbar">
-        <button class="contrib-reload-btn" onclick="loadContribSheet()">🔄 重新載入</button>
         <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
         <button class="contrib-edit-btn" onclick="clearContribEdit()" style="color:#c94f3a;border-color:#c94f3a">🗑️ 清除編輯 恢復原始</button>
-        <span class="contrib-status">${statusTxt}</span>
       </div>
       <div class="card" style="padding:20px;line-height:1.8;font-size:14px">${htmlContent}</div>`;
     return;
@@ -2092,10 +2090,8 @@ function renderContribTable(el){
 
   el.innerHTML=`
     <div class="contrib-toolbar">
-      <button class="contrib-reload-btn" onclick="loadContribSheet()">🔄 重新載入</button>
       <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
       ${isEdited?`<button class="contrib-edit-btn" onclick="clearContribEdit()" style="color:#c94f3a;border-color:#c94f3a">🗑️ 清除編輯 恢復原始</button>`:''}
-      <span class="contrib-status">${statusTxt}</span>
     </div>
     <div class="contrib-table-wrap">
       <table class="contrib-table">
