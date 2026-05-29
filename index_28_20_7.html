@@ -2385,31 +2385,37 @@ function cbGetCurrentTable(){
 // 插入欄（右側）
 function cbInsertColRight(){
   cbSnapshot();
-  const table=cbGetCurrentTable();
-  const cell=cbGetCurrentCell();
-  if(!table||!cell)return alert('請先點選表格內的儲存格');
-  const rows=table.querySelectorAll('tr');
-  const cellIndex=cell.cellIndex;
-  rows.forEach(row=>{
-    const newCell=row.cells[cellIndex]?row.insertCell(cellIndex+1):row.insertCell();
-    newCell.style.cssText='padding:6px 10px;border:1px solid #ccc';
-    newCell.innerHTML='　';
-  });
+  const cell=window.cbLastCell;
+  if(!cell)return alert('請先點選表格內的儲存格');
+  let table=cell;while(table&&table.nodeName!=='TABLE')table=table.parentNode;
+  if(!table)return;
+  const ci=cell.cellIndex;
+  for(let i=0;i<table.rows.length;i++){
+    const row=table.rows[i];
+    const isHead=row.parentNode.nodeName==='THEAD';
+    const el=document.createElement(isHead?'th':'td');
+    el.style.cssText=isHead?'padding:6px 10px;background:var(--bg2);border:1px solid #ccc':'padding:6px 10px;border:1px solid #ccc';
+    el.innerHTML=isHead?'新欄':'　';
+    row.insertBefore(el,row.cells[ci+1]||null);
+  }
   document.getElementById('cb-col-menu').style.display='none';
 }
 // 插入欄（左側）
 function cbInsertColLeft(){
   cbSnapshot();
-  const table=cbGetCurrentTable();
-  const cell=cbGetCurrentCell();
-  if(!table||!cell)return alert('請先點選表格內的儲存格');
-  const rows=table.querySelectorAll('tr');
-  const cellIndex=cell.cellIndex;
-  rows.forEach(row=>{
-    const newCell=row.insertCell(cellIndex);
-    newCell.style.cssText='padding:6px 10px;border:1px solid #ccc';
-    newCell.innerHTML='　';
-  });
+  const cell=window.cbLastCell;
+  if(!cell)return alert('請先點選表格內的儲存格');
+  let table=cell;while(table&&table.nodeName!=='TABLE')table=table.parentNode;
+  if(!table)return;
+  const ci=cell.cellIndex;
+  for(let i=0;i<table.rows.length;i++){
+    const row=table.rows[i];
+    const isHead=row.parentNode.nodeName==='THEAD';
+    const el=document.createElement(isHead?'th':'td');
+    el.style.cssText=isHead?'padding:6px 10px;background:var(--bg2);border:1px solid #ccc':'padding:6px 10px;border:1px solid #ccc';
+    el.innerHTML=isHead?'新欄':'　';
+    row.insertBefore(el,row.cells[ci]||null);
+  }
   document.getElementById('cb-col-menu').style.display='none';
 }
 // 插入列（下方）
