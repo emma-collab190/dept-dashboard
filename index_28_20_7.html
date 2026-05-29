@@ -2171,14 +2171,7 @@ function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 
 function renderContribution(){
   const el=document.getElementById('contribContent');
-  const saved=localStorage.getItem(CONTRIB_LOCAL_KEY);
-  if(saved){try{contribEditRows=JSON.parse(saved);}catch(e){contribEditRows=[];}}
-  const rows=activeRows();
-  if(!rows||rows.length===0){
-    el.innerHTML='<div class="no-data" style="padding:40px;text-align:center">⏳ 資料載入中，請稍候…</div>';
-  } else {
-    renderContribTable(el);
-  }
+  renderContribTable(el);
 }
 
 function renderPage(p){
