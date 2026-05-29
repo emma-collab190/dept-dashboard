@@ -2363,19 +2363,19 @@ function cbInsertHr(){
 }
 
 // ── 表格輔助：記住最後點選的儲存格 ──
-let cbLastCell = null;
+window.cbLastCell = null;
 document.addEventListener('mousedown', function(e){
   let node = e.target;
   while(node && node !== document){
-    if(node.nodeName==='TD'||node.nodeName==='TH'){ cbLastCell=node; return; }
+    if(node.nodeName==='TD'||node.nodeName==='TH'){ window.cbLastCell=node; return; }
     node = node.parentNode;
   }
 });
 function cbGetCurrentCell(){
-  return cbLastCell;
+  return window.cbLastCell;
 }
 function cbGetCurrentTable(){
-  const cell=cbGetCurrentCell();
+  const cell=window.cbLastCell;
   if(!cell)return null;
   let node=cell;
   while(node){if(node.nodeName==='TABLE')return node;node=node.parentNode;}
