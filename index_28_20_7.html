@@ -2065,8 +2065,16 @@ function renderContribTable(el){
     const statusTxt='<span style="color:#c8873a">📝 目前顯示本機編輯版本</span>';
     el.innerHTML=`
       <div class="contrib-toolbar">
+        <div style="position:relative;display:inline-block">
+          <button class="contrib-edit-btn" onclick="cbToggleQuarterMenu()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
+          <div id="cbQuarterMenu" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:140px;overflow:hidden">
+            <div onclick="cbOpenModalQ('2026Q1')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q1（1～3月）</div>
+            <div onclick="cbOpenModalQ('2026Q2')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q2（4～6月）</div>
+            <div onclick="cbOpenModalQ('2026Q3')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q3（7～9月）</div>
+            <div onclick="cbOpenModalQ('2026Q4')" style="padding:9px 16px;cursor:pointer;font-size:13px">2026 Q4（10～12月）</div>
+          </div>
+        </div>
         <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
-        <button class="contrib-edit-btn" onclick="clearContribEdit()" style="color:#c94f3a;border-color:#c94f3a">🗑️ 清除編輯 恢復原始</button>
       </div>
       <div class="card" style="padding:20px;line-height:1.8;font-size:14px">${htmlContent}</div>`;
     return;
@@ -2090,8 +2098,16 @@ function renderContribTable(el){
 
   el.innerHTML=`
     <div class="contrib-toolbar">
+      <div style="position:relative;display:inline-block" id="cbAddWrap">
+        <button class="contrib-edit-btn" onclick="cbToggleQuarterMenu()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
+        <div id="cbQuarterMenu" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:140px;overflow:hidden">
+          <div onclick="cbOpenModalQ('2026Q1')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q1（1～3月）</div>
+          <div onclick="cbOpenModalQ('2026Q2')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q2（4～6月）</div>
+          <div onclick="cbOpenModalQ('2026Q3')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q3（7～9月）</div>
+          <div onclick="cbOpenModalQ('2026Q4')" style="padding:9px 16px;cursor:pointer;font-size:13px">2026 Q4（10～12月）</div>
+        </div>
+      </div>
       <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
-      ${isEdited?`<button class="contrib-edit-btn" onclick="clearContribEdit()" style="color:#c94f3a;border-color:#c94f3a">🗑️ 清除編輯 恢復原始</button>`:''}
     </div>
     <div class="contrib-table-wrap">
       <table class="contrib-table">
@@ -2102,8 +2118,45 @@ function renderContribTable(el){
     <!-- contrib-editor-placeholder -->`;
 }
 
-function cbOpenModal(){
+let cbCurrentQuarter='';  // 目前編輯的季
+
+function cbToggleQuarterMenu(){
+  const m=document.getElementById('cbQuarterMenu');
+  if(m) m.style.display=m.style.display==='none'?'block':'none';
+}
+// 點其他地方關閉選單
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('cbAddWrap');
+  if(wrap&&!wrap.contains(e.target)){
+    const m=document.getElementById('cbQuarterMenu');
+    if(m) m.style.display='none';
+  }
+});
+
+function cbOpenModalQ(quarter){
+  // 關閉選單
+  const m=document.getElementById('cbQuarterMenu');
+  if(m) m.style.display='none';
+  cbCurrentQuarter=quarter;
+  // 載入該季既有內容
+  const key=CONTRIB_LOCAL_KEY+'_'+quarter;
+  const saved=localStorage.getItem(key);
   const modal=document.getElementById('cb-modal');
+  // 更新 modal 標題
+  const qLabel={'2026Q1':'2026 Q1（1～3月）','2026Q2':'2026 Q2（4～6月）','2026Q3':'2026 Q3（7～9月）','2026Q4':'2026 Q4（10～12月）'};
+  modal.querySelector('span').textContent='✏️ '+( qLabel[quarter]||quarter)+' 個人貢獻分析';
+  modal.style.display='flex';
+  document.body.style.overflow='hidden';
+  document.getElementById('cb-editor').innerHTML=saved||'';
+  cbUndoStack.length=0;cbRedoStack.length=0;
+  setTimeout(()=>{document.getElementById('cb-editor').focus();cbSnapshot();},100);
+}
+
+function cbOpenModal(){
+  // 編輯現有內容（沿用舊邏輯，quarter=空）
+  cbCurrentQuarter='';
+  const modal=document.getElementById('cb-modal');
+  modal.querySelector('span').textContent='✏️ 編輯個人貢獻分析';
   modal.style.display='flex';
   document.body.style.overflow='hidden';
   const saved=localStorage.getItem(CONTRIB_LOCAL_KEY);
@@ -2111,7 +2164,8 @@ function cbOpenModal(){
   if(saved){
     try{
       const rows=JSON.parse(saved);
-      html=rows.map(r=>r.join(',')).join('<br>');
+      if(rows[0]&&rows[0][0]==='html_content') html=rows[0][1]||'';
+      else html=rows.map(r=>r.join(',')).join('<br>');
     }catch(e){}
   } else {
     const rows=raw.contrib||[];
@@ -2131,8 +2185,14 @@ function cbCloseModal(force){
 }
 function cbSave(){
   const html=document.getElementById('cb-editor').innerHTML;
-  contribEditRows=[['html_content',html]];
-  localStorage.setItem(CONTRIB_LOCAL_KEY,JSON.stringify(contribEditRows));
+  if(cbCurrentQuarter){
+    // 季模式：存到獨立 key
+    localStorage.setItem(CONTRIB_LOCAL_KEY+'_'+cbCurrentQuarter, html);
+  } else {
+    // 編輯既有內容
+    contribEditRows=[['html_content',html]];
+    localStorage.setItem(CONTRIB_LOCAL_KEY,JSON.stringify(contribEditRows));
+  }
   cbCloseModal(true);
   renderContribTable(document.getElementById('contribContent'));
 }
