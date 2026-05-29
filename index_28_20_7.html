@@ -2053,79 +2053,35 @@ function loadContribSheet(){
 }
 
 function renderContribTable(el){
-  const rows=activeRows();
-  if(!rows||rows.length===0){
-    el.innerHTML='<div class="no-data" style="padding:40px;text-align:center">無資料</div>';
-    return;
-  }
-  const isEdited=contribEditRows.length>0;
-  // 若是 HTML 編輯模式（key=html_content）
-  if(isEdited&&rows[0]&&rows[0][0]==='html_content'){
-    const htmlContent=rows[0][1]||'';
-    const quarters=['2026Q1','2026Q2','2026Q3','2026Q4'];
-    const qLabel={'2026Q1':'2026 Q1（1～3月）','2026Q2':'2026 Q2（4～6月）','2026Q3':'2026 Q3（7～9月）','2026Q4':'2026 Q4（10～12月）'};
-    const qBlocks=quarters.map(q=>{
-      const qHtml=localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q);
-      if(!qHtml)return'';
-      return`<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--accent)">${qLabel[q]}</div><div style="line-height:1.8;font-size:14px">${qHtml}</div></div>`;
-    }).join('');
-    el.innerHTML=`
-      <div class="contrib-toolbar">
-        <div style="position:relative;display:inline-block" id="cbAddWrap">
-          <button class="contrib-edit-btn" onclick="cbToggleQuarterMenu()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
-          <div id="cbQuarterMenu" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:140px;overflow:hidden">
-            <div onclick="cbOpenModalQ('2026Q1')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q1（1～3月）</div>
-            <div onclick="cbOpenModalQ('2026Q2')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q2（4～6月）</div>
-            <div onclick="cbOpenModalQ('2026Q3')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q3（7～9月）</div>
-            <div onclick="cbOpenModalQ('2026Q4')" style="padding:9px 16px;cursor:pointer;font-size:13px">2026 Q4（10～12月）</div>
-          </div>
-        </div>
-        <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
+  const quarters=['2026Q1','2026Q2','2026Q3','2026Q4'];
+  const qLabel={'2026Q1':'2026 Q1（1～3月）','2026Q2':'2026 Q2（4～6月）','2026Q3':'2026 Q3（7～9月）','2026Q4':'2026 Q4（10～12月）'};
+  // 有任何季別資料？
+  const hasAny=quarters.some(q=>localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q));
+  const qBlocks=quarters.map(q=>{
+    const qHtml=localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q);
+    if(!qHtml)return'';
+    return`<div class="card" style="padding:20px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--accent)">
+        <span style="font-size:14px;font-weight:700;color:var(--accent)">${qLabel[q]}</span>
+        <button onclick="cbOpenModalQ('${q}')" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);cursor:pointer;font-size:12px;color:var(--ink2)">✏️ 編輯</button>
       </div>
-      ${htmlContent?`<div class="card" style="padding:20px;line-height:1.8;font-size:14px;margin-bottom:16px">${htmlContent}</div>`:''}
-      ${qBlocks}`;
-    return;
-  }
-  // 找第一個有內容的 row 作為 header
-  const header=rows[0]||[];
-  const body=rows.slice(1).filter(r=>r&&r.some(c=>c&&c.trim()));
-  const statusTxt=isEdited
-    ? '<span style="color:#c8873a">📝 目前顯示本機編輯版本</span>'
-    : '<span style="color:var(--ink3)">✅ 來自 Google Sheets 最新資料</span>';
-
-  const thHtml=header.map(h=>`<th>${h||''}</th>`).join('');
-  const tbHtml=body.map(r=>{
-    const cells=header.map((_,ci)=>{
-      const v=r[ci]||'';
-      const isNum=!isNaN(parseFloat(v))&&v.trim()!=='';
-      return`<td class="${isNum?'num':ci===0?'name-cell':''}">${v}</td>`;
-    }).join('');
-    return`<tr>${cells}</tr>`;
+      <div style="line-height:1.8;font-size:14px">${qHtml}</div>
+    </div>`;
   }).join('');
-
   el.innerHTML=`
     <div class="contrib-toolbar">
       <div style="position:relative;display:inline-block" id="cbAddWrap">
         <button class="contrib-edit-btn" onclick="cbToggleQuarterMenu()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
-        <div id="cbQuarterMenu" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:140px;overflow:hidden">
+        <div id="cbQuarterMenu" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:160px;overflow:hidden">
           <div onclick="cbOpenModalQ('2026Q1')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q1（1～3月）</div>
           <div onclick="cbOpenModalQ('2026Q2')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q2（4～6月）</div>
           <div onclick="cbOpenModalQ('2026Q3')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q3（7～9月）</div>
           <div onclick="cbOpenModalQ('2026Q4')" style="padding:9px 16px;cursor:pointer;font-size:13px">2026 Q4（10～12月）</div>
         </div>
       </div>
-      <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
     </div>
-    <div class="contrib-table-wrap">
-      <table class="contrib-table">
-        <thead><tr>${thHtml}</tr></thead>
-        <tbody>${tbHtml}</tbody>
-      </table>
-    </div>
-    <!-- contrib-editor-placeholder -->`;
+    ${hasAny ? qBlocks : '<div class="no-data" style="padding:40px;text-align:center;color:var(--ink3)">尚無資料，點「＋ 新增」選擇季別開始填寫</div>'}`;
 }
-
-let cbCurrentQuarter='';  // 目前編輯的季
 
 function cbToggleQuarterMenu(){
   const m=document.getElementById('cbQuarterMenu');
