@@ -657,7 +657,7 @@ const ml26=m=>`2026/${String(m).padStart(2,'0')}`;
 const ml25=m=>`2025/${String(m).padStart(2,'0')}`;
 
 let view='manager',month=1,currentPage='overview',selectedPerson='';
-let raw={util:null,monthly:null,channel:null,supplier:null,venue:null,yeargrowth:null,worklog:null,fontour:null,fonticket:null,traveline:null};
+let raw={util:null,monthly:null,channel:null,supplier:null,venue:null,yeargrowth:null,worklog:null,fontour:null,fonticket:null,traveline:null,contrib:null};
 let charts={};
 let pendingKey=null,sidebarCollapsed=false,importExpanded=false;
 
@@ -2038,55 +2038,23 @@ function renderPersonal(){
 // ══════════════════════════════════════
 //  個人貢獻分析
 // ══════════════════════════════════════
-const CONTRIB_SHEET_ID = '1acUczK4tLtbQLqZ7NH5yHHOGbxx60dOhr8K6EppzpeE';
-const CONTRIB_GID = '35680145';
 const CONTRIB_LOCAL_KEY = 'contribEditData';
-let contribRawRows = [];   // 從 Sheets 抓到的原始 CSV rows
 let contribEditRows = [];  // 手動編輯後的 rows (localStorage)
 
-function contribCsvUrl(){
-  return `https://docs.google.com/spreadsheets/d/${CONTRIB_SHEET_ID}/export?format=csv&gid=${CONTRIB_GID}`;
-}
-
-async function loadContribSheet(){
-  const el=document.getElementById('contribContent');
-  el.innerHTML='<div class="no-data" style="padding:40px;text-align:center">⏳ 從 Google Sheets 載入中…</div>';
-  try{
-    const res=await fetch(contribCsvUrl());
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const text=await res.text();
-    contribRawRows=parseContribCsv(text);
-    // 若有本機編輯版本，優先使用
-    const saved=localStorage.getItem(CONTRIB_LOCAL_KEY);
-    if(saved){try{contribEditRows=JSON.parse(saved);}catch(e){contribEditRows=[];}}
-    else{contribEditRows=[];}
-    renderContribTable(el);
-  }catch(e){
-    el.innerHTML=`<div class="no-data" style="padding:40px;text-align:center">
-      ❌ 無法載入 Google Sheets 資料<br><span style="font-size:12px;color:var(--ink3);margin-top:6px;display:block">${e.message}<br>請確認試算表已設為「知道連結的人可檢視」</span>
-      <br><button class="contrib-reload-btn" onclick="loadContribSheet()" style="margin-top:12px">🔄 重試</button>
-    </div>`;
-  }
-}
-
-function parseContribCsv(text){
-  const lines=text.split('\n');
-  return lines.map(l=>{
-    const cols=[];let cur='',inQ=false;
-    for(let i=0;i<l.length;i++){
-      if(l[i]==='"'&&!inQ){inQ=true;}
-      else if(l[i]==='"'&&inQ&&l[i+1]==='"'){cur+='"';i++;}
-      else if(l[i]==='"'&&inQ){inQ=false;}
-      else if(l[i]===','&&!inQ){cols.push(cur.trim());cur='';}
-      else cur+=l[i];
-    }
-    cols.push(cur.trim());
-    return cols;
-  });
-}
-
 function activeRows(){
-  return contribEditRows.length>0 ? contribEditRows : contribRawRows;
+  const saved=contribEditRows.length>0 ? contribEditRows : (raw.contrib||[]);
+  return saved;
+}
+
+function loadContribSheet(){
+  const el=document.getElementById('contribContent');
+  if(!raw.contrib||raw.contrib.length===0){
+    el.innerHTML='<div class="no-data" style="padding:40px;text-align:center">請稍候，資料載入中…</div>';
+    return;
+  }
+  contribEditRows=[];
+  localStorage.removeItem(CONTRIB_LOCAL_KEY);
+  renderContribTable(el);
 }
 
 function renderContribTable(el){
@@ -2162,10 +2130,12 @@ function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 
 function renderContribution(){
   const el=document.getElementById('contribContent');
+  // 先載入本機編輯
+  const saved=localStorage.getItem(CONTRIB_LOCAL_KEY);
+  if(saved){try{contribEditRows=JSON.parse(saved);}catch(e){contribEditRows=[];}}
   const rows=activeRows();
-  if(rows.length===0){
-    // 尚未載入過，自動觸發
-    loadContribSheet();
+  if(!rows||rows.length===0){
+    el.innerHTML='<div class="no-data" style="padding:40px;text-align:center">⏳ 資料載入中，請稍候…</div>';
   } else {
     renderContribTable(el);
   }
@@ -2207,6 +2177,7 @@ const AUTO_CSV = [
   { key: 'fonticket',  file: '2026績效指標-系統服務發展部(導入&客服) - Release指標(FonTicket)-部門計價.csv' },
   { key: 'traveline',  file: '2026績效指標-系統服務發展部(導入&客服) - Release指標(Traveline)-部門計價.csv' },
   { key: 'worklog',    file: '2026績效指標-系統服務發展部(導入&客服) - 每月重要工作項目.csv' },
+  { key: 'contrib',    file: '2026績效指標-系統服務發展部(導入&客服) - (年度)個人貢獻分析.csv' },
 ];
 
 async function autoLoadCSVs(){
