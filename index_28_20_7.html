@@ -2058,10 +2058,24 @@ function renderContribTable(el){
     el.innerHTML='<div class="no-data" style="padding:40px;text-align:center">無資料</div>';
     return;
   }
+  const isEdited=contribEditRows.length>0;
+  // 若是 HTML 編輯模式（key=html_content）
+  if(isEdited&&rows[0]&&rows[0][0]==='html_content'){
+    const htmlContent=rows[0][1]||'';
+    const statusTxt='<span style="color:#c8873a">📝 目前顯示本機編輯版本</span>';
+    el.innerHTML=`
+      <div class="contrib-toolbar">
+        <button class="contrib-reload-btn" onclick="loadContribSheet()">🔄 重新載入</button>
+        <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
+        <button class="contrib-edit-btn" onclick="clearContribEdit()" style="color:#c94f3a;border-color:#c94f3a">🗑️ 清除編輯 恢復原始</button>
+        <span class="contrib-status">${statusTxt}</span>
+      </div>
+      <div class="card" style="padding:20px;line-height:1.8;font-size:14px">${htmlContent}</div>`;
+    return;
+  }
   // 找第一個有內容的 row 作為 header
   const header=rows[0]||[];
   const body=rows.slice(1).filter(r=>r&&r.some(c=>c&&c.trim()));
-  const isEdited=contribEditRows.length>0;
   const statusTxt=isEdited
     ? '<span style="color:#c8873a">📝 目前顯示本機編輯版本</span>'
     : '<span style="color:var(--ink3)">✅ 來自 Google Sheets 最新資料</span>';
@@ -2079,7 +2093,7 @@ function renderContribTable(el){
   el.innerHTML=`
     <div class="contrib-toolbar">
       <button class="contrib-reload-btn" onclick="loadContribSheet()">🔄 重新載入</button>
-      <button class="contrib-edit-btn" onclick="openContribEdit()">✏️ 編輯</button>
+      <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
       ${isEdited?`<button class="contrib-edit-btn" onclick="clearContribEdit()" style="color:#c94f3a;border-color:#c94f3a">🗑️ 清除編輯 恢復原始</button>`:''}
       <span class="contrib-status">${statusTxt}</span>
     </div>
@@ -2089,33 +2103,46 @@ function renderContribTable(el){
         <tbody>${tbHtml}</tbody>
       </table>
     </div>
-    <!-- 編輯 Modal -->
-    <div class="contrib-edit-overlay" id="contribEditOverlay">
-      <div class="contrib-edit-modal">
-        <h3>✏️ 手動編輯資料（CSV 格式）</h3>
-        <p style="font-size:12px;color:var(--ink3);margin:0 0 10px">直接修改下方 CSV 內容後儲存，將覆蓋顯示（不影響 Google Sheets 原始資料）</p>
-        <textarea id="contribEditArea">${escapeHtml(rows.map(r=>r.join(',')).join('\n'))}</textarea>
-        <div class="contrib-edit-actions">
-          <button class="contrib-cancel-btn" onclick="closeContribEdit()">取消</button>
-          <button class="contrib-save-btn" onclick="saveContribEdit()">💾 儲存</button>
-        </div>
-      </div>
-    </div>`;
+    <!-- contrib-editor-placeholder -->`;
 }
 
-function openContribEdit(){
-  document.getElementById('contribEditOverlay').classList.add('open');
+function cbOpenModal(){
+  const modal=document.getElementById('cb-modal');
+  modal.style.display='flex';
+  document.body.style.overflow='hidden';
+  const saved=localStorage.getItem(CONTRIB_LOCAL_KEY);
+  let html='';
+  if(saved){
+    try{
+      const rows=JSON.parse(saved);
+      html=rows.map(r=>r.join(',')).join('<br>');
+    }catch(e){}
+  } else {
+    const rows=raw.contrib||[];
+    html=rows.map(r=>'<p>'+r.join(',')+'</p>').join('');
+  }
+  document.getElementById('cb-editor').innerHTML=html||'';
+  cbUndoStack.length=0;cbRedoStack.length=0;
+  setTimeout(()=>{document.getElementById('cb-editor').focus();cbSnapshot();},100);
 }
-function closeContribEdit(){
-  document.getElementById('contribEditOverlay').classList.remove('open');
+function cbCloseModal(force){
+  if(!force){
+    const html=document.getElementById('cb-editor').innerHTML.trim();
+    if(html&&html!=='<br>'&&html!=='')if(!confirm('內容尚未儲存，確定要離開嗎？'))return;
+  }
+  document.getElementById('cb-modal').style.display='none';
+  document.body.style.overflow='';
 }
-function saveContribEdit(){
-  const txt=document.getElementById('contribEditArea').value;
-  contribEditRows=parseContribCsv(txt);
+function cbSave(){
+  const html=document.getElementById('cb-editor').innerHTML;
+  contribEditRows=[['html_content',html]];
   localStorage.setItem(CONTRIB_LOCAL_KEY,JSON.stringify(contribEditRows));
-  closeContribEdit();
+  cbCloseModal(true);
   renderContribTable(document.getElementById('contribContent'));
 }
+function openContribEdit(){cbOpenModal();}
+function closeContribEdit(){cbCloseModal(true);}
+function saveContribEdit(){cbSave();}
 function clearContribEdit(){
   contribEditRows=[];
   localStorage.removeItem(CONTRIB_LOCAL_KEY);
@@ -2194,6 +2221,111 @@ async function autoLoadCSVs(){
 }
 
 autoLoadCSVs();
+</script>
+
+<!-- ═══ 個人貢獻分析 富文本編輯器 Modal ═══ -->
+<div id="cb-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);align-items:center;justify-content:center">
+  <div style="background:var(--white);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(760px,92vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--alight);border-bottom:1px solid #b8d8cc;flex-shrink:0">
+      <span style="font-size:14px;font-weight:600;font-family:'Noto Serif TC',serif;color:var(--accent)">✏️ 編輯個人貢獻分析</span>
+      <button onclick="cbCloseModal()" style="width:30px;height:30px;border:none;background:transparent;cursor:pointer;font-size:18px;color:var(--ink3);line-height:1;border-radius:6px">✕</button>
+    </div>
+    <div style="padding:18px;overflow-y:auto;flex:1">
+      <label style="font-size:11px;font-weight:600;color:var(--ink3);display:block;margin-bottom:4px">內容</label>
+      <div style="display:flex;gap:2px;padding:6px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px 6px 0 0;flex-wrap:wrap">
+        <button onclick="cbCmd('bold')" title="粗體" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-weight:700;font-size:13px">B</button>
+        <button onclick="cbCmd('italic')" title="斜體" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-style:italic;font-size:13px">I</button>
+        <button onclick="cbCmd('underline')" title="底線" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;text-decoration:underline;font-size:13px">U</button>
+        <button onclick="cbCmd('strikeThrough')" title="刪除線" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;text-decoration:line-through;font-size:13px">S</button>
+        <div style="width:1px;background:var(--border);margin:2px 4px"></div>
+        <select onchange="cbSetFontSize(this.value);this.value=''" title="字型大小" style="height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px;padding:0 4px;color:var(--ink)">
+          <option value="">字級</option>
+          <option value="1">很小</option><option value="2">小</option><option value="3">一般</option>
+          <option value="4">中</option><option value="5">大</option><option value="6">很大</option>
+        </select>
+        <button onclick="cbClearFormat()" title="清除格式" style="padding:0 8px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px">清除</button>
+        <div style="width:1px;background:var(--border);margin:2px 4px"></div>
+        <button onclick="cbCmd('formatBlock','h2')" style="padding:0 8px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px;font-weight:600">H1</button>
+        <button onclick="cbCmd('formatBlock','h3')" style="padding:0 8px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px;font-weight:600">H2</button>
+        <button onclick="cbCmd('formatBlock','h4')" style="padding:0 8px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px;font-weight:600">H3</button>
+        <div style="width:1px;background:var(--border);margin:2px 4px"></div>
+        <button onclick="cbCmd('insertUnorderedList')" title="項目符號" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:14px">≡</button>
+        <button onclick="cbCmd('insertOrderedList')" title="編號清單" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:14px">№</button>
+        <div style="width:1px;background:var(--border);margin:2px 4px"></div>
+        <button onclick="cbCmd('justifyLeft')" title="靠左" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:12px">⬅</button>
+        <button onclick="cbCmd('justifyCenter')" title="置中" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:12px">⬛</button>
+        <button onclick="cbCmd('justifyRight')" title="靠右" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:12px">➡</button>
+        <div style="width:1px;background:var(--border);margin:2px 4px"></div>
+        <select onchange="cbCmd('foreColor',this.value);this.value=''" title="文字顏色" style="height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px;padding:0 4px;color:var(--ink)">
+          <option value="">顏色</option>
+          <option value="#c94f3a" style="color:#c94f3a">🔴 紅</option>
+          <option value="#1a8a6a" style="color:#1a8a6a">🟢 綠</option>
+          <option value="#3a6ac8" style="color:#3a6ac8">🔵 藍</option>
+          <option value="#c8873a" style="color:#c8873a">🟠 橙</option>
+          <option value="#7c4dbc" style="color:#7c4dbc">🟣 紫</option>
+          <option value="#333333">⚫ 黑</option>
+        </select>
+        <div style="width:1px;background:var(--border);margin:2px 4px"></div>
+        <button onclick="cbUndo()" title="復原" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:13px">↩</button>
+        <button onclick="cbRedo()" title="取消復原" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:13px">↪</button>
+        <div style="width:1px;background:var(--border);margin:2px 4px"></div>
+        <button onclick="cbInsertTable()" title="插入表格" style="padding:0 8px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px">表格</button>
+        <button onclick="cbInsertHr()" title="插入分隔線" style="padding:0 8px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px">─</button>
+      </div>
+      <div id="cb-editor" contenteditable="true" spellcheck="false"
+        style="min-height:360px;border:1px solid var(--border2);border-top:none;border-radius:0 0 6px 6px;padding:14px;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--ink);outline:none;background:var(--bg);line-height:1.8;overflow-y:auto"
+        oninput="cbSnapshot()"
+        onkeydown="if(event.ctrlKey&&event.key==='z'){event.preventDefault();cbUndo();}if(event.ctrlKey&&event.key==='y'){event.preventDefault();cbRedo();}">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg2)">
+      <button onclick="cbCloseModal()" style="padding:8px 20px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;font-size:13px;color:var(--ink2)">取消</button>
+      <button onclick="cbSave()" style="padding:8px 24px;border:none;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-size:13px;font-weight:600">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── cb editor undo/redo ──
+const cbUndoStack=[],cbRedoStack=[];
+let cbSnapshotTimer=null;
+function cbSnapshot(){
+  clearTimeout(cbSnapshotTimer);
+  cbSnapshotTimer=setTimeout(()=>{
+    const html=document.getElementById('cb-editor').innerHTML;
+    if(cbUndoStack.length===0||cbUndoStack[cbUndoStack.length-1]!==html){
+      cbUndoStack.push(html);
+      if(cbUndoStack.length>50)cbUndoStack.shift();
+      cbRedoStack.length=0;
+    }
+  },300);
+}
+function cbUndo(){
+  if(cbUndoStack.length<=1)return;
+  cbRedoStack.push(cbUndoStack.pop());
+  const html=cbUndoStack[cbUndoStack.length-1];
+  document.getElementById('cb-editor').innerHTML=html;
+}
+function cbRedo(){
+  if(!cbRedoStack.length)return;
+  const html=cbRedoStack.pop();
+  cbUndoStack.push(html);
+  document.getElementById('cb-editor').innerHTML=html;
+}
+function cbCmd(cmd,val){cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand(cmd,false,val||null);}
+function cbSetFontSize(s){if(!s)return;cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand('fontSize',false,s);}
+function cbClearFormat(){cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand('removeFormat',false,null);}
+function cbInsertTable(){
+  cbSnapshot();
+  const t='<table border="1" style="border-collapse:collapse;width:100%;margin:8px 0"><tr><th style="padding:6px 10px;background:var(--bg2)">欄位1</th><th style="padding:6px 10px;background:var(--bg2)">欄位2</th><th style="padding:6px 10px;background:var(--bg2)">欄位3</th></tr><tr><td style="padding:6px 10px">　</td><td style="padding:6px 10px">　</td><td style="padding:6px 10px">　</td></tr></table>';
+  document.getElementById('cb-editor').focus();
+  document.execCommand('insertHTML',false,t);
+}
+function cbInsertHr(){
+  cbSnapshot();
+  document.getElementById('cb-editor').focus();
+  document.execCommand('insertHTML',false,'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
+}
 </script>
 </body>
 </html>
