@@ -2310,6 +2310,7 @@ autoLoadCSVs();
       <div id="cb-editor" contenteditable="true" spellcheck="false"
         style="min-height:360px;border:1px solid var(--border2);border-top:none;border-radius:0 0 6px 6px;padding:14px;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--ink);outline:none;background:var(--bg);line-height:1.8;overflow-y:auto"
         oninput="cbSnapshot()"
+        onmousedown="(function(e){let n=e.target;while(n&&n!==document){if(n.nodeName==='TD'||n.nodeName==='TH'){window.cbLastCell=n;return;}n=n.parentNode;}})(event)"
         onkeydown="if(event.ctrlKey&&event.key==='z'){event.preventDefault();cbUndo();}if(event.ctrlKey&&event.key==='y'){event.preventDefault();cbRedo();}">
       </div>
     </div>
