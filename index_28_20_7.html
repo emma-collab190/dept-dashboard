@@ -2298,11 +2298,11 @@ autoLoadCSVs();
           <div id="cb-col-menu" style="display:none;position:absolute;top:30px;left:0;background:var(--white);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:999;min-width:130px;padding:4px 0">
             <div onclick="cbInsertColLeft();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">← 插入欄（左）</div>
             <div onclick="cbInsertColRight();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">→ 插入欄（右）</div>
-            <div onclick="cbColDelete();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;color:#c94f3a;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">✕ 刪除欄</div>
+            <div onclick="cbDeleteCol();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;color:#c94f3a;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">✕ 刪除欄</div>
             <hr style="margin:4px 0;border:none;border-top:1px solid var(--border)">
-            <div onclick="cbRowInsertAbove();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">↑ 插入列（上）</div>
-            <div onclick="cbRowInsertBelow();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">↓ 插入列（下）</div>
-            <div onclick="cbRowDelete();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;color:#c94f3a;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">✕ 刪除列</div>
+            <div onclick="cbInsertRowAbove();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">↑ 插入列（上）</div>
+            <div onclick="cbInsertRowBelow();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">↓ 插入列（下）</div>
+            <div onclick="cbDeleteRow();document.getElementById('cb-col-menu').style.display='none'" style="padding:7px 14px;cursor:pointer;font-size:12px;color:#c94f3a;white-space:nowrap" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">✕ 刪除列</div>
           </div>
         </div>
         <button onclick="cbInsertHr()" title="插入分隔線" style="padding:0 8px;height:28px;border:1px solid var(--border);border-radius:4px;background:var(--white);cursor:pointer;font-size:11px">─</button>
@@ -2506,7 +2506,7 @@ function cbInsertColRight(){
   });
 }
 // 刪除欄
-function cbColDelete(){
+function cbDeleteCol(){
   cbSnapshot();
   const cell=cbGetCurrentCell(); if(!cell) return;
   const table=cell.closest('table'); if(!table) return;
@@ -2514,7 +2514,7 @@ function cbColDelete(){
   table.querySelectorAll('tr').forEach(tr=>{ if(tr.cells[colIdx]) tr.deleteCell(colIdx); });
 }
 // 插入列（上）
-function cbRowInsertAbove(){
+function cbInsertRowAbove(){
   cbSnapshot();
   const cell=cbGetCurrentCell(); if(!cell) return;
   const row=cell.closest('tr'); if(!row) return;
@@ -2525,7 +2525,7 @@ function cbRowInsertAbove(){
   row.parentNode.insertBefore(newRow,row);
 }
 // 插入列（下）
-function cbRowInsertBelow(){
+function cbInsertRowBelow(){
   cbSnapshot();
   const cell=cbGetCurrentCell(); if(!cell) return;
   const row=cell.closest('tr'); if(!row) return;
@@ -2535,7 +2535,7 @@ function cbRowInsertBelow(){
   row.nextSibling ? row.parentNode.insertBefore(newRow,row.nextSibling) : row.parentNode.appendChild(newRow);
 }
 // 刪除列
-function cbRowDelete(){
+function cbDeleteRow(){
   cbSnapshot();
   const cell=cbGetCurrentCell(); if(!cell) return;
   const row=cell.closest('tr'); if(!row) return;
