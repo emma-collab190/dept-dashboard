@@ -2361,6 +2361,113 @@ function cbInsertHr(){
   document.getElementById('cb-editor').focus();
   document.execCommand('insertHTML',false,'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
 }
+
+// ── 表格輔助：取得游標所在 td/th ──
+function cbGetCurrentCell(){
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount)return null;
+  let node=sel.getRangeAt(0).commonAncestorContainer;
+  while(node&&node!==document){
+    if(node.nodeName==='TD'||node.nodeName==='TH')return node;
+    node=node.parentNode;
+  }
+  return null;
+}
+function cbGetCurrentTable(){
+  const cell=cbGetCurrentCell();
+  if(!cell)return null;
+  let node=cell;
+  while(node){if(node.nodeName==='TABLE')return node;node=node.parentNode;}
+  return null;
+}
+
+// 插入欄（右側）
+function cbInsertColRight(){
+  cbSnapshot();
+  const table=cbGetCurrentTable();
+  const cell=cbGetCurrentCell();
+  if(!table||!cell)return alert('請先點選表格內的儲存格');
+  const rows=table.querySelectorAll('tr');
+  const cellIndex=cell.cellIndex;
+  rows.forEach(row=>{
+    const newCell=row.cells[cellIndex]?row.insertCell(cellIndex+1):row.insertCell();
+    newCell.style.cssText='padding:6px 10px;border:1px solid #ccc';
+    newCell.innerHTML='　';
+  });
+  document.getElementById('cb-col-menu').style.display='none';
+}
+// 插入欄（左側）
+function cbInsertColLeft(){
+  cbSnapshot();
+  const table=cbGetCurrentTable();
+  const cell=cbGetCurrentCell();
+  if(!table||!cell)return alert('請先點選表格內的儲存格');
+  const rows=table.querySelectorAll('tr');
+  const cellIndex=cell.cellIndex;
+  rows.forEach(row=>{
+    const newCell=row.insertCell(cellIndex);
+    newCell.style.cssText='padding:6px 10px;border:1px solid #ccc';
+    newCell.innerHTML='　';
+  });
+  document.getElementById('cb-col-menu').style.display='none';
+}
+// 插入列（下方）
+function cbInsertRowBelow(){
+  cbSnapshot();
+  const table=cbGetCurrentTable();
+  const cell=cbGetCurrentCell();
+  if(!table||!cell)return alert('請先點選表格內的儲存格');
+  const row=cell.parentNode;
+  const colCount=row.cells.length;
+  const newRow=row.parentNode.insertRow(row.rowIndex+1);
+  for(let i=0;i<colCount;i++){
+    const newCell=newRow.insertCell();
+    newCell.style.cssText='padding:6px 10px;border:1px solid #ccc';
+    newCell.innerHTML='　';
+  }
+  document.getElementById('cb-col-menu').style.display='none';
+}
+// 插入列（上方）
+function cbInsertRowAbove(){
+  cbSnapshot();
+  const table=cbGetCurrentTable();
+  const cell=cbGetCurrentCell();
+  if(!table||!cell)return alert('請先點選表格內的儲存格');
+  const row=cell.parentNode;
+  const colCount=row.cells.length;
+  const newRow=row.parentNode.insertRow(row.rowIndex);
+  for(let i=0;i<colCount;i++){
+    const newCell=newRow.insertCell();
+    newCell.style.cssText='padding:6px 10px;border:1px solid #ccc';
+    newCell.innerHTML='　';
+  }
+  document.getElementById('cb-col-menu').style.display='none';
+}
+// 刪除目前欄
+function cbDeleteCol(){
+  cbSnapshot();
+  const table=cbGetCurrentTable();
+  const cell=cbGetCurrentCell();
+  if(!table||!cell)return alert('請先點選表格內的儲存格');
+  const cellIndex=cell.cellIndex;
+  const rows=table.querySelectorAll('tr');
+  rows.forEach(row=>{if(row.cells[cellIndex])row.deleteCell(cellIndex);});
+  document.getElementById('cb-col-menu').style.display='none';
+}
+// 刪除目前列
+function cbDeleteRow(){
+  cbSnapshot();
+  const table=cbGetCurrentTable();
+  const cell=cbGetCurrentCell();
+  if(!table||!cell)return alert('請先點選表格內的儲存格');
+  cell.parentNode.parentNode.deleteRow(cell.parentNode.rowIndex);
+  document.getElementById('cb-col-menu').style.display='none';
+}
+// 欄列選單開關
+function cbToggleColMenu(){
+  const m=document.getElementById('cb-col-menu');
+  if(m)m.style.display=m.style.display==='none'?'block':'none';
+}
 // 取得游標所在的 td/th
 function cbGetCurrentCell(){
   const sel=window.getSelection();
