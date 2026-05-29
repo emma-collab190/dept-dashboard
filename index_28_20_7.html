@@ -2062,10 +2062,16 @@ function renderContribTable(el){
   // 若是 HTML 編輯模式（key=html_content）
   if(isEdited&&rows[0]&&rows[0][0]==='html_content'){
     const htmlContent=rows[0][1]||'';
-    const statusTxt='<span style="color:#c8873a">📝 目前顯示本機編輯版本</span>';
+    const quarters=['2026Q1','2026Q2','2026Q3','2026Q4'];
+    const qLabel={'2026Q1':'2026 Q1（1～3月）','2026Q2':'2026 Q2（4～6月）','2026Q3':'2026 Q3（7～9月）','2026Q4':'2026 Q4（10～12月）'};
+    const qBlocks=quarters.map(q=>{
+      const qHtml=localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q);
+      if(!qHtml)return'';
+      return`<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--accent)">${qLabel[q]}</div><div style="line-height:1.8;font-size:14px">${qHtml}</div></div>`;
+    }).join('');
     el.innerHTML=`
       <div class="contrib-toolbar">
-        <div style="position:relative;display:inline-block">
+        <div style="position:relative;display:inline-block" id="cbAddWrap">
           <button class="contrib-edit-btn" onclick="cbToggleQuarterMenu()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
           <div id="cbQuarterMenu" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:140px;overflow:hidden">
             <div onclick="cbOpenModalQ('2026Q1')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q1（1～3月）</div>
@@ -2076,7 +2082,8 @@ function renderContribTable(el){
         </div>
         <button class="contrib-edit-btn" onclick="cbOpenModal()">✏️ 編輯</button>
       </div>
-      <div class="card" style="padding:20px;line-height:1.8;font-size:14px">${htmlContent}</div>`;
+      ${htmlContent?`<div class="card" style="padding:20px;line-height:1.8;font-size:14px;margin-bottom:16px">${htmlContent}</div>`:''}
+      ${qBlocks}`;
     return;
   }
   // 找第一個有內容的 row 作為 header
