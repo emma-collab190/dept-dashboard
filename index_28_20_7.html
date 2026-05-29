@@ -2079,10 +2079,21 @@ function renderContribTable(el){
           <div onclick="cbOpenModalQ('2026Q4')" style="padding:9px 16px;cursor:pointer;font-size:13px">2026 Q4（10～12月）</div>
         </div>
       </div>
+      <button class="contrib-edit-btn" onclick="clearAllContrib()" style="color:#c94f3a;border-color:#c94f3a;font-size:12px">🗑️ 清除全部</button>
     </div>
     ${hasAny ? qBlocks : '<div class="no-data" style="padding:40px;text-align:center;color:var(--ink3)">尚無資料，點「＋ 新增」選擇季別開始填寫</div>'}`;
 }
 
+function clearAllContrib(){
+  if(!confirm('確定要清除所有個人貢獻分析資料嗎？'))return;
+  localStorage.removeItem(CONTRIB_LOCAL_KEY);
+  localStorage.removeItem(CONTRIB_LOCAL_KEY+'_2026Q1');
+  localStorage.removeItem(CONTRIB_LOCAL_KEY+'_2026Q2');
+  localStorage.removeItem(CONTRIB_LOCAL_KEY+'_2026Q3');
+  localStorage.removeItem(CONTRIB_LOCAL_KEY+'_2026Q4');
+  contribEditRows=[];
+  renderContribTable(document.getElementById('contribContent'));
+}
 function cbToggleQuarterMenu(){
   const m=document.getElementById('cbQuarterMenu');
   if(m) m.style.display=m.style.display==='none'?'block':'none';
