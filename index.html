@@ -2061,10 +2061,16 @@ function renderContribTable(el){
   const csvRows=(raw.contrib||[]).slice(1).filter(r=>r&&r[0]&&r[0].trim()&&r[1]&&r[1].trim());
   const csvBlocks=csvRows.map(r=>{
     const period=(r[0]||'').trim();
-    const text=(r[1]||'').trim();
+    const csvText=(r[1]||'').trim();
+    const editKey=CONTRIB_LOCAL_KEY+'_csv_'+period.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'_');
+    const saved=localStorage.getItem(editKey);
+    const displayHtml=saved||('<span style="white-space:pre-wrap">'+csvText+'</span>');
     return`<div class="card" style="padding:20px;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--accent)">${period}</div>
-      <div style="line-height:1.8;font-size:14px;white-space:pre-wrap">${text}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--accent)">
+        <span style="font-size:13px;font-weight:700;color:var(--accent)">${period}</span>
+        <button onclick="cbOpenModalQ('${editKey}','${period.replace(/'/g,"\\'")}','${csvText.replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);cursor:pointer;font-size:12px;color:var(--ink2)">✏️ 編輯</button>
+      </div>
+      <div style="line-height:1.8;font-size:14px">${displayHtml}</div>
     </div>`;
   }).join('');
 
@@ -2122,21 +2128,23 @@ document.addEventListener('click',function(e){
   }
 });
 
-function cbOpenModalQ(quarter){
+function cbOpenModalQ(quarter, label, defaultText){
   // 關閉選單
   const m=document.getElementById('cbQuarterMenu');
   if(m) m.style.display='none';
   cbCurrentQuarter=quarter;
-  // 載入該季既有內容
-  const key=CONTRIB_LOCAL_KEY+'_'+quarter;
+  // 載入既有內容
+  const isCustomKey=quarter.startsWith(CONTRIB_LOCAL_KEY+'_csv_');
+  const key=isCustomKey?quarter:CONTRIB_LOCAL_KEY+'_'+quarter;
   const saved=localStorage.getItem(key);
   const modal=document.getElementById('cb-modal');
-  // 更新 modal 標題
   const qLabel={'2026Q1':'2026 Q1（1～3月）','2026Q2':'2026 Q2（4～6月）','2026Q3':'2026 Q3（7～9月）','2026Q4':'2026 Q4（10～12月）'};
-  modal.querySelector('span').textContent='✏️ '+( qLabel[quarter]||quarter)+' 個人貢獻分析';
+  const title=label||(qLabel[quarter]||quarter);
+  modal.querySelector('span').textContent='✏️ '+title;
   modal.style.display='flex';
   document.body.style.overflow='hidden';
-  document.getElementById('cb-editor').innerHTML=saved||'';
+  // 有 localStorage 用 localStorage，否則用 defaultText 或空白
+  document.getElementById('cb-editor').innerHTML=saved||(defaultText?'<p>'+defaultText+'</p>':'');
   cbUndoStack.length=0;cbRedoStack.length=0;
   setTimeout(()=>{document.getElementById('cb-editor').focus();cbSnapshot();},100);
 }
@@ -2175,10 +2183,10 @@ function cbCloseModal(force){
 function cbSave(){
   const html=document.getElementById('cb-editor').innerHTML;
   if(cbCurrentQuarter){
-    // 季模式：存到獨立 key
-    localStorage.setItem(CONTRIB_LOCAL_KEY+'_'+cbCurrentQuarter, html);
+    const isCustomKey=cbCurrentQuarter.startsWith(CONTRIB_LOCAL_KEY+'_csv_');
+    const key=isCustomKey?cbCurrentQuarter:CONTRIB_LOCAL_KEY+'_'+cbCurrentQuarter;
+    localStorage.setItem(key, html);
   } else {
-    // 編輯既有內容
     contribEditRows=[['html_content',html]];
     localStorage.setItem(CONTRIB_LOCAL_KEY,JSON.stringify(contribEditRows));
   }
