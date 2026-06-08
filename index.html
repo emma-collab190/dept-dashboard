@@ -1777,10 +1777,11 @@ function renderFullService(){
     if(inUpload&&kpi&&!kpi.includes('全服務模式產品上架數'))inUpload=false;
     if(!inUpload)return;
     const name=(r[1]||'').trim();
-    if(!name||name==='實際完成數'||name.length>12||!COLORS[name])return;
+    const nameKey=Object.keys(COLORS).find(k=>k.toLowerCase()===name.toLowerCase())||name;
+    if(!name||name==='實際完成數'||name.length>12||!COLORS[nameKey])return;
     // 逐月累積：加總 1月~當月選擇器月份的數字（r[3]=1月, r[4]=2月...）
     const total=r.slice(3,3+month).reduce((a,v)=>a+ni(v),0);
-    uploadTotals[name]=total;
+    uploadTotals[nameKey]=total;
   });
   const shown=[...IMPORT_TEAM,'stephen'];
   document.getElementById('uploadChips').innerHTML=shown.map(p=>{
