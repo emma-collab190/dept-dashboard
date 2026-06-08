@@ -1510,17 +1510,15 @@ function wlSave(){
   const rec={key,year:yr,month:mo,title:title||key+' 工作成果',html,updatedAt:new Date().toLocaleString('zh-TW')};
   if(idx>=0)records[idx]=rec; else records.unshift(rec);
   wlSetAll(records);
-  // 儲存後先重新渲染列表，再顯示剛儲存的資料
+  // 立即關閉 modal 並顯示剛儲存的內容
+  document.getElementById('wl-title').value='';
+  document.getElementById('wl-editor').innerHTML='';
+  wlCloseModal(true);
   renderWorklogList();
+  wlViewRecord(key);
+  // 顯示儲存成功訊息
   const msg=document.getElementById('wl-save-msg');
-  msg.style.display='block';
-  setTimeout(()=>{
-    msg.style.display='none';
-    document.getElementById('wl-title').value='';
-    document.getElementById('wl-editor').innerHTML='';
-    wlCloseModal(true);
-    wlViewRecord(key);
-  },1000);
+  if(msg){msg.style.display='block';setTimeout(()=>{msg.style.display='none';},1500);}
 }
 function wlClear(){
   document.getElementById('wl-title').value='';
