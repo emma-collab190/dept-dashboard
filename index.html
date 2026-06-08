@@ -2488,140 +2488,17 @@ function cbInsertColLeft(){
   document.getElementById('cb-col-menu').style.display='none';
 }
 // 插入列（下方）
-function cbInsertRowBelow(){
-  cbSnapshot();
-  const table=cbGetCurrentTable();
-  const cell=cbGetCurrentCell();
-  if(!table||!cell)return alert('請先點選表格內的儲存格');
-  const row=cell.parentNode;
-  const colCount=row.cells.length;
-  const newRow=row.parentNode.insertRow(row.rowIndex+1);
-  for(let i=0;i<colCount;i++){
-    const newCell=newRow.insertCell();
-    newCell.style.cssText='padding:6px 10px;border:1px solid #ccc';
-    newCell.innerHTML='　';
-  }
-  document.getElementById('cb-col-menu').style.display='none';
-}
+
 // 插入列（上方）
-function cbInsertRowAbove(){
-  cbSnapshot();
-  const table=cbGetCurrentTable();
-  const cell=cbGetCurrentCell();
-  if(!table||!cell)return alert('請先點選表格內的儲存格');
-  const row=cell.parentNode;
-  const colCount=row.cells.length;
-  const newRow=row.parentNode.insertRow(row.rowIndex);
-  for(let i=0;i<colCount;i++){
-    const newCell=newRow.insertCell();
-    newCell.style.cssText='padding:6px 10px;border:1px solid #ccc';
-    newCell.innerHTML='　';
-  }
-  document.getElementById('cb-col-menu').style.display='none';
-}
+
 // 刪除目前欄
-function cbDeleteCol(){
-  cbSnapshot();
-  const table=cbGetCurrentTable();
-  const cell=cbGetCurrentCell();
-  if(!table||!cell)return alert('請先點選表格內的儲存格');
-  const cellIndex=cell.cellIndex;
-  const rows=table.querySelectorAll('tr');
-  rows.forEach(row=>{if(row.cells[cellIndex])row.deleteCell(cellIndex);});
-  document.getElementById('cb-col-menu').style.display='none';
-}
+
 // 刪除目前列
-function cbDeleteRow(){
-  cbSnapshot();
-  const table=cbGetCurrentTable();
-  const cell=cbGetCurrentCell();
-  if(!table||!cell)return alert('請先點選表格內的儲存格');
-  cell.parentNode.parentNode.deleteRow(cell.parentNode.rowIndex);
-  document.getElementById('cb-col-menu').style.display='none';
-}
+
 // 欄列選單開關
 function cbToggleColMenu(){
   const m=document.getElementById('cb-col-menu');
   if(m)m.style.display=m.style.display==='none'?'block':'none';
 }
 // 取得游標所在的 td/th
-function cbGetCurrentCell(){
-  const sel=window.getSelection();
-  if(!sel||!sel.rangeCount) return null;
-  let node=sel.getRangeAt(0).startContainer;
-  while(node && node.nodeName!=='TD' && node.nodeName!=='TH') node=node.parentElement;
-  return node||null;
-}
-// 插入欄（左）
-function cbInsertColLeft(){
-  cbSnapshot();
-  const cell=cbGetCurrentCell(); if(!cell) return;
-  const table=cell.closest('table'); if(!table) return;
-  const colIdx=cell.cellIndex;
-  table.querySelectorAll('tr').forEach(tr=>{
-    const isHeader=tr.querySelector('th')!==null && tr.cells[colIdx] && tr.cells[colIdx].nodeName==='TH';
-    const newCell=document.createElement(isHeader?'th':'td');
-    newCell.style.cssText='padding:6px 10px'+(isHeader?';background:var(--bg2)':'');
-    newCell.innerHTML='　';
-    tr.insertBefore(newCell, tr.cells[colIdx]);
-  });
-}
-// 插入欄（右）
-function cbInsertColRight(){
-  cbSnapshot();
-  const cell=cbGetCurrentCell(); if(!cell) return;
-  const table=cell.closest('table'); if(!table) return;
-  const colIdx=cell.cellIndex;
-  table.querySelectorAll('tr').forEach(tr=>{
-    const isHeader=tr.querySelector('th')!==null && tr.cells[colIdx] && tr.cells[colIdx].nodeName==='TH';
-    const newCell=document.createElement(isHeader?'th':'td');
-    newCell.style.cssText='padding:6px 10px'+(isHeader?';background:var(--bg2)':'');
-    newCell.innerHTML='　';
-    const refCell=tr.cells[colIdx+1];
-    refCell ? tr.insertBefore(newCell,refCell) : tr.appendChild(newCell);
-  });
-}
-// 刪除欄
-function cbDeleteCol(){
-  cbSnapshot();
-  const cell=cbGetCurrentCell(); if(!cell) return;
-  const table=cell.closest('table'); if(!table) return;
-  const colIdx=cell.cellIndex;
-  table.querySelectorAll('tr').forEach(tr=>{ if(tr.cells[colIdx]) tr.deleteCell(colIdx); });
-}
-// 插入列（上）
-function cbInsertRowAbove(){
-  cbSnapshot();
-  const cell=cbGetCurrentCell(); if(!cell) return;
-  const row=cell.closest('tr'); if(!row) return;
-  const table=cell.closest('table'); if(!table) return;
-  const colCount=row.cells.length;
-  const newRow=document.createElement('tr');
-  for(let i=0;i<colCount;i++){const td=document.createElement('td');td.style.cssText='padding:6px 10px';td.innerHTML='　';newRow.appendChild(td);}
-  row.parentNode.insertBefore(newRow,row);
-}
-// 插入列（下）
-function cbInsertRowBelow(){
-  cbSnapshot();
-  const cell=cbGetCurrentCell(); if(!cell) return;
-  const row=cell.closest('tr'); if(!row) return;
-  const colCount=row.cells.length;
-  const newRow=document.createElement('tr');
-  for(let i=0;i<colCount;i++){const td=document.createElement('td');td.style.cssText='padding:6px 10px';td.innerHTML='　';newRow.appendChild(td);}
-  row.nextSibling ? row.parentNode.insertBefore(newRow,row.nextSibling) : row.parentNode.appendChild(newRow);
-}
-// 刪除列
-function cbDeleteRow(){
-  cbSnapshot();
-  const cell=cbGetCurrentCell(); if(!cell) return;
-  const row=cell.closest('tr'); if(!row) return;
-  row.remove();
-}
-// 點擊其他地方關閉下拉
-document.addEventListener('click',function(e){
-  const menu=document.getElementById('cb-col-menu');
-  if(menu && !e.target.closest('#cb-col-menu') && !e.target.closest('[onclick*="cb-col-menu"]')) menu.style.display='none';
-});
-</script>
-</body>
-</html>
+
