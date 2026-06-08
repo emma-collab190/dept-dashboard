@@ -1052,19 +1052,6 @@ function relCloseModal(){
   document.body.style.overflow='';
 }
 function relCmd(cmd,val){document.getElementById('rel-editor').focus();document.execCommand(cmd,false,val||null);}
-function relSave(){
-  const html=document.getElementById('rel-editor').innerHTML;
-  const notes=relGetNotes();
-  notes[relCurrentKey]=html;
-  relSetNotes(notes);
-  const msg=document.getElementById('rel-save-msg');
-  msg.style.display='block';
-  setTimeout(()=>{msg.style.display='none';relCloseModal();renderRelease();},1000);
-}
-document.addEventListener('click',function(e){
-  const m=document.getElementById('rel-modal');
-  if(e.target===m)relCloseModal();
-});
 
 function parseRelease(csvKey){
   // CSV結構：每月區塊10行
