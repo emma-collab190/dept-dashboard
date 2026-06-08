@@ -541,19 +541,6 @@ input[type=file]{display:none}
         </div>
       </div>
     </div>
-    <!-- 主管報告說明區塊 -->
-    <div class="section" style="margin-top:16px">
-      <div class="sec-hd"><div><div class="sec-title">主管報告說明</div><div class="sec-desc">排名異動原因分析｜可編輯</div></div></div>
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <span style="font-size:12px;color:var(--ink3)">📝 針對本月排名變動，說明上升或下滑原因</span>
-          <button onclick="rankNoteEdit()" style="font-size:11px;padding:3px 10px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue)">✏️ 編輯</button>
-        </div>
-        <div id="rankNoteView" style="font-size:13px;line-height:1.8;color:var(--ink2);min-height:80px;word-break:break-word" class="wl-content-display-cls"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- 系統驗測監控 -->
   <!-- Release 筆記 Modal -->
   <div id="rel-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);align-items:center;justify-content:center">
@@ -1523,12 +1510,17 @@ function wlSave(){
   const rec={key,year:yr,month:mo,title:title||key+' 工作成果',html,updatedAt:new Date().toLocaleString('zh-TW')};
   if(idx>=0)records[idx]=rec; else records.unshift(rec);
   wlSetAll(records);
-  // 儲存後清空並關閉 modal
-  document.getElementById('wl-title').value='';
-  document.getElementById('wl-editor').innerHTML='';
+  // 儲存後先重新渲染列表，再顯示剛儲存的資料
+  renderWorklogList();
   const msg=document.getElementById('wl-save-msg');
   msg.style.display='block';
-  setTimeout(()=>{msg.style.display='none';wlCloseModal(true);renderWorklogList();wlViewRecord(key);},1200);
+  setTimeout(()=>{
+    msg.style.display='none';
+    document.getElementById('wl-title').value='';
+    document.getElementById('wl-editor').innerHTML='';
+    wlCloseModal(true);
+    wlViewRecord(key);
+  },1000);
 }
 function wlClear(){
   document.getElementById('wl-title').value='';
