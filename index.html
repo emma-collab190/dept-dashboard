@@ -2056,8 +2056,19 @@ function loadContribSheet(){
 function renderContribTable(el){
   const quarters=['2026Q1','2026Q2','2026Q3','2026Q4'];
   const qLabel={'2026Q1':'2026 Q1（1～3月）','2026Q2':'2026 Q2（4～6月）','2026Q3':'2026 Q3（7～9月）','2026Q4':'2026 Q4（10～12月）'};
-  // 有任何季別資料？
-  const hasAny=quarters.some(q=>localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q));
+
+  // ── CSV 資料區塊（年/月 + 分析結果）──
+  const csvRows=(raw.contrib||[]).slice(1).filter(r=>r&&r[0]&&r[0].trim()&&r[1]&&r[1].trim());
+  const csvBlocks=csvRows.map(r=>{
+    const period=(r[0]||'').trim();
+    const text=(r[1]||'').trim();
+    return`<div class="card" style="padding:20px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--accent)">${period}</div>
+      <div style="line-height:1.8;font-size:14px;white-space:pre-wrap">${text}</div>
+    </div>`;
+  }).join('');
+
+  // ── localStorage 手動新增的季別區塊 ──
   const qBlocks=quarters.map(q=>{
     const qHtml=localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q);
     if(!qHtml)return'';
@@ -2069,20 +2080,23 @@ function renderContribTable(el){
       <div style="line-height:1.8;font-size:14px">${qHtml}</div>
     </div>`;
   }).join('');
+
+  const hasAnything = csvRows.length>0 || quarters.some(q=>localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q));
+
   el.innerHTML=`
     <div class="contrib-toolbar">
       <div style="position:relative;display:inline-block" id="cbAddWrap">
-        <button class="contrib-edit-btn" onclick="cbToggleQuarterMenu()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
-        <div id="cbQuarterMenu" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:160px;overflow:hidden">
+        <button class="contrib-edit-btn" onmousedown="event.preventDefault()" onclick="cbToggleQuarterMenu()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
+        <div id="cbQuarterMenu" onmousedown="event.preventDefault()" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:160px;overflow:hidden">
           <div onclick="cbOpenModalQ('2026Q1')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q1（1～3月）</div>
           <div onclick="cbOpenModalQ('2026Q2')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q2（4～6月）</div>
           <div onclick="cbOpenModalQ('2026Q3')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q3（7～9月）</div>
           <div onclick="cbOpenModalQ('2026Q4')" style="padding:9px 16px;cursor:pointer;font-size:13px">2026 Q4（10～12月）</div>
         </div>
       </div>
-      <button class="contrib-edit-btn" onclick="clearAllContrib()" style="color:#c94f3a;border-color:#c94f3a;font-size:12px">🗑️ 清除全部</button>
+      <button class="contrib-edit-btn" onclick="clearAllContrib()" style="color:#c94f3a;border-color:#c94f3a;font-size:12px">🗑️ 清除手動新增</button>
     </div>
-    ${hasAny ? qBlocks : '<div class="no-data" style="padding:40px;text-align:center;color:var(--ink3)">尚無資料，點「＋ 新增」選擇季別開始填寫</div>'}`;
+    ${hasAnything ? csvBlocks+qBlocks : '<div class="no-data" style="padding:40px;text-align:center;color:var(--ink3)">尚無資料，請上傳個人貢獻分析 CSV 或點「＋ 新增」填寫</div>'}`;
 }
 
 function clearAllContrib(){
