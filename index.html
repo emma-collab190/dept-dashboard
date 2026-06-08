@@ -1848,12 +1848,12 @@ function renderRanking(){
   const ven=parseVenue(month);
   document.getElementById('venueList').innerHTML=!ven.length?'<div class="no-data">請匯入場域排名 CSV</div>':ven.map((r,i)=>renderRankingItem(r,i,true)).join('');
   // 渲染右側報告區塊
-  const notes=rankGetNotes();
+  const rptNotes=rankGetNotes();
   ['venue','supplier'].forEach(type=>{
     const el=document.getElementById(type+'ReportBody');
     if(!el)return;
     const key=type+'_'+month;
-    const html=notes[key]||'';
+    const html=rptNotes[key]||'';
     el.innerHTML=html||'<span class="rank-report-empty">尚無內容，點右上角編輯填寫</span>';
   });
 
