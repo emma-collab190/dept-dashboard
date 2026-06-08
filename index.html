@@ -116,9 +116,8 @@ input[type=file]{display:none}
 /* RANKING */
 .ranking-list{display:flex;flex-direction:column;gap:5px;margin:0}
 .ranking-dual-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
-.ranking-new-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-.ranking-left-col{display:flex;flex-direction:column;gap:12px}
-.ranking-right-col{display:flex;flex-direction:column;gap:12px}
+.ranking-new-layout{display:flex;flex-direction:column;gap:20px}
+.ranking-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
 .rank-report-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
 .rank-report-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2)}
 .rank-report-title{font-size:13px;font-weight:600;color:var(--ink1)}
@@ -515,23 +514,23 @@ input[type=file]{display:none}
   <div class="page" id="page-ranking">
     <div class="page-head"><h1>供應商 / 場域排名</h1><p>前10名｜含 YOY 成長率｜來源：供應商/場域服務排名 CSV</p></div>
     <div class="ranking-new-layout">
-      <div class="ranking-left-col">
+      <div class="ranking-pair" id="venuePair">
         <div class="section">
           <div class="sec-hd"><div><div class="sec-title">前10場域服務排名</div><div class="sec-desc" id="sec4Desc">依累積服務時間(分)</div></div></div>
           <div class="card" style="padding:8px"><div class="ranking-list" id="venueList"></div></div>
         </div>
-        <div class="section">
-          <div class="sec-hd"><div><div class="sec-title">前10供應商服務排名</div><div class="sec-desc" id="sec3Desc">依累積服務時間(分)</div></div></div>
-          <div class="card" style="padding:8px"><div class="ranking-list" id="supplierList"></div></div>
-        </div>
-      </div>
-      <div class="ranking-right-col">
         <div class="rank-report-card">
           <div class="rank-report-hd">
             <span class="rank-report-title">📍 場域排名異動原因分析</span>
             <button class="rank-report-edit-btn" onclick="rankNoteEdit('venue')">✏️ 編輯</button>
           </div>
           <div class="rank-report-body" id="venueReportBody"><span class="rank-report-empty">尚無內容，點右上角編輯填寫</span></div>
+        </div>
+      </div>
+      <div class="ranking-pair" id="supplierPair">
+        <div class="section">
+          <div class="sec-hd"><div><div class="sec-title">前10供應商服務排名</div><div class="sec-desc" id="sec3Desc">依累積服務時間(分)</div></div></div>
+          <div class="card" style="padding:8px"><div class="ranking-list" id="supplierList"></div></div>
         </div>
         <div class="rank-report-card">
           <div class="rank-report-hd">
