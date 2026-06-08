@@ -116,6 +116,16 @@ input[type=file]{display:none}
 /* RANKING */
 .ranking-list{display:flex;flex-direction:column;gap:5px;margin:0}
 .ranking-dual-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.ranking-new-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.ranking-left-col{display:flex;flex-direction:column;gap:12px}
+.ranking-right-col{display:flex;flex-direction:column;gap:12px}
+.rank-report-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.rank-report-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.rank-report-title{font-size:13px;font-weight:600;color:var(--ink1)}
+.rank-report-edit-btn{padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--white);cursor:pointer;font-size:12px;color:var(--ink2)}
+.rank-report-edit-btn:hover{background:var(--bg2)}
+.rank-report-body{padding:16px;min-height:200px;font-size:13px;line-height:1.8;color:var(--ink1)}
+.rank-report-empty{color:var(--ink3);font-size:12px;font-style:italic}
 .ranking-list{display:grid;grid-template-rows:auto}
 .rank-row{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);transition:all .18s}
 .rank-row:hover{background:var(--white);border-color:var(--border2);box-shadow:var(--sh);transform:translateX(3px)}
@@ -504,14 +514,32 @@ input[type=file]{display:none}
   <!-- 供應商/場域排名 -->
   <div class="page" id="page-ranking">
     <div class="page-head"><h1>供應商 / 場域排名</h1><p>前10名｜含 YOY 成長率｜來源：供應商/場域服務排名 CSV</p></div>
-    <div class="ranking-dual-grid">
-      <div class="section">
-        <div class="sec-hd"><div><div class="sec-title">前10場域服務排名</div><div class="sec-desc" id="sec4Desc">依累積服務時間(分)</div></div></div>
-        <div class="card" style="padding:8px"><div class="ranking-list" id="venueList"></div></div>
+    <div class="ranking-new-layout">
+      <div class="ranking-left-col">
+        <div class="section">
+          <div class="sec-hd"><div><div class="sec-title">前10場域服務排名</div><div class="sec-desc" id="sec4Desc">依累積服務時間(分)</div></div></div>
+          <div class="card" style="padding:8px"><div class="ranking-list" id="venueList"></div></div>
+        </div>
+        <div class="section">
+          <div class="sec-hd"><div><div class="sec-title">前10供應商服務排名</div><div class="sec-desc" id="sec3Desc">依累積服務時間(分)</div></div></div>
+          <div class="card" style="padding:8px"><div class="ranking-list" id="supplierList"></div></div>
+        </div>
       </div>
-      <div class="section">
-        <div class="sec-hd"><div><div class="sec-title">前10供應商服務排名</div><div class="sec-desc" id="sec3Desc">依累積服務時間(分)</div></div></div>
-        <div class="card" style="padding:8px"><div class="ranking-list" id="supplierList"></div></div>
+      <div class="ranking-right-col">
+        <div class="rank-report-card">
+          <div class="rank-report-hd">
+            <span class="rank-report-title">📍 場域排名異動原因分析</span>
+            <button class="rank-report-edit-btn" onclick="rankNoteEdit('venue')">✏️ 編輯</button>
+          </div>
+          <div class="rank-report-body" id="venueReportBody"><span class="rank-report-empty">尚無內容，點右上角編輯填寫</span></div>
+        </div>
+        <div class="rank-report-card">
+          <div class="rank-report-hd">
+            <span class="rank-report-title">📦 供應商排名異動原因分析</span>
+            <button class="rank-report-edit-btn" onclick="rankNoteEdit('supplier')">✏️ 編輯</button>
+          </div>
+          <div class="rank-report-body" id="supplierReportBody"><span class="rank-report-empty">尚無內容，點右上角編輯填寫</span></div>
+        </div>
       </div>
     </div>
     <!-- 主管報告說明區塊 -->
@@ -1793,15 +1821,15 @@ function renderFullService(){
 const RANK_NOTE_KEY='ranking_notes';
 function rankGetNotes(){try{return JSON.parse(localStorage.getItem(RANK_NOTE_KEY)||'{}')}catch{return{}}}
 function rankSetNotes(obj){localStorage.setItem(RANK_NOTE_KEY,JSON.stringify(obj))}
-function rankNoteEdit(){
+function rankNoteEdit(type){
   const notes=rankGetNotes();
-  const key='rank_'+month;
+  const key=(type||'rank')+'_'+month;
+  const titleMap={'venue':'場域排名異動原因分析','supplier':'供應商排名異動原因分析','rank':'主管報告說明'};
   const modal=document.getElementById('rel-modal');
-  document.getElementById('rel-modal-title').textContent='✏️ 主管報告說明 — '+month+'月';
+  document.getElementById('rel-modal-title').textContent='✏️ '+(titleMap[type]||'報告說明')+' — '+month+'月';
   document.getElementById('rel-editor').innerHTML=notes[key]||'';
   modal.style.display='flex';
   document.body.style.overflow='hidden';
-  // 覆寫儲存行為
   window._rankNoteSaveKey=key;
 }
 // 覆寫 relSave 以支援排名說明儲存
@@ -1832,6 +1860,16 @@ function renderRanking(){
   document.getElementById('supplierList').innerHTML=!sup.length?'<div class="no-data">請匯入供應商排名 CSV</div>':sup.map((r,i)=>renderRankingItem(r,i,false)).join('');
   const ven=parseVenue(month);
   document.getElementById('venueList').innerHTML=!ven.length?'<div class="no-data">請匯入場域排名 CSV</div>':ven.map((r,i)=>renderRankingItem(r,i,true)).join('');
+  // 渲染右側報告區塊
+  const notes=rankGetNotes();
+  ['venue','supplier'].forEach(type=>{
+    const el=document.getElementById(type+'ReportBody');
+    if(!el)return;
+    const key=type+'_'+month;
+    const html=notes[key]||'';
+    el.innerHTML=html||'<span class="rank-report-empty">尚無內容，點右上角編輯填寫</span>';
+  });
+
   // 同步左右欄每個 TOP 列高度
   requestAnimationFrame(()=>{
     const vRows=[...document.querySelectorAll('#venueList .rank-row')];
