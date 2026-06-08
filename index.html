@@ -1805,10 +1805,10 @@ function rankNoteEdit(){
   window._rankNoteSaveKey=key;
 }
 // 覆寫 relSave 以支援排名說明儲存
-const _origRelSave=typeof relSave==='function'?relSave:null;
 function relSave(){
+  const html=document.getElementById('rel-editor').innerHTML.trim();
   if(window._rankNoteSaveKey){
-    const html=document.getElementById('rel-editor').innerHTML.trim();
+    // 排名說明模式
     const notes=rankGetNotes();
     notes[window._rankNoteSaveKey]=html;
     rankSetNotes(notes);
@@ -1817,7 +1817,12 @@ function relSave(){
     if(msg){msg.style.display='block';setTimeout(()=>{msg.style.display='none';relCloseModal();renderRanking();},1200);}
     return;
   }
-  if(_origRelSave)_origRelSave();
+  // 一般 Release 備註模式
+  const notes=relGetNotes();
+  notes[relCurrentKey]=html;
+  relSetNotes(notes);
+  const msg=document.getElementById('rel-save-msg');
+  if(msg){msg.style.display='block';setTimeout(()=>{msg.style.display='none';relCloseModal();renderRelease();},1000);}
 }
 function renderRanking(){
   const rangeText=month===1?'1月':`1～${month}月`;
