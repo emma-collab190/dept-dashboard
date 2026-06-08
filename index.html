@@ -2059,16 +2059,17 @@ function renderContribTable(el){
 
   // ── CSV 資料區塊（年/月 + 分析結果）──
   const csvRows=(raw.contrib||[]).slice(1).filter(r=>r&&r[0]&&r[0].trim()&&r[1]&&r[1].trim());
-  const csvBlocks=csvRows.map(r=>{
+  const csvBlocks=csvRows.map((r,ri)=>{
     const period=(r[0]||'').trim();
     const csvText=(r[1]||'').trim();
-    const editKey=CONTRIB_LOCAL_KEY+'_csv_'+period.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'_');
+    const editKey=CONTRIB_LOCAL_KEY+'_csv_'+ri;
     const saved=localStorage.getItem(editKey);
     const displayHtml=saved||('<span style="white-space:pre-wrap">'+csvText+'</span>');
+    // 用 data 屬性存參數，避免引號衝突
     return`<div class="card" style="padding:20px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--accent)">
         <span style="font-size:13px;font-weight:700;color:var(--accent)">${period}</span>
-        <button onclick="cbOpenModalQ('${editKey}','${period.replace(/'/g,"\\'")}','${csvText.replace(/'/g,"\\'")}');event.stopPropagation()" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);cursor:pointer;font-size:12px;color:var(--ink2)">✏️ 編輯</button>
+        <button class="cb-csv-edit-btn" data-key="${editKey}" data-label="${period}" data-default="${encodeURIComponent(csvText)}" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);cursor:pointer;font-size:12px;color:var(--ink2)">✏️ 編輯</button>
       </div>
       <div style="line-height:1.8;font-size:14px">${displayHtml}</div>
     </div>`;
@@ -2089,6 +2090,19 @@ function renderContribTable(el){
 
   const hasAnything = csvRows.length>0 || quarters.some(q=>localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q));
 
+  // 渲染後綁定 CSV 編輯按鈕事件
+  const contribEl=el;
+  const bindCsvEdits=()=>{
+    contribEl.querySelectorAll('.cb-csv-edit-btn').forEach(btn=>{
+      btn.onclick=function(){
+        const key=this.getAttribute('data-key');
+        const label=this.getAttribute('data-label');
+        const def=decodeURIComponent(this.getAttribute('data-default')||'');
+        cbOpenModalQ(key,label,def);
+      };
+    });
+  };
+
   el.innerHTML=`
     <div class="contrib-toolbar">
       <div style="position:relative;display:inline-block" id="cbAddWrap">
@@ -2103,6 +2117,7 @@ function renderContribTable(el){
       <button class="contrib-edit-btn" onclick="clearAllContrib()" style="color:#c94f3a;border-color:#c94f3a;font-size:12px">🗑️ 清除手動新增</button>
     </div>
     ${hasAnything ? csvBlocks+qBlocks : '<div class="no-data" style="padding:40px;text-align:center;color:var(--ink3)">尚無資料，請上傳個人貢獻分析 CSV 或點「＋ 新增」填寫</div>'}`;
+  setTimeout(bindCsvEdits,0);
 }
 
 function clearAllContrib(){
