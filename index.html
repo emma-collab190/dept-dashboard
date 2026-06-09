@@ -117,7 +117,7 @@ input[type=file]{display:none}
 .ranking-list{display:flex;flex-direction:column;gap:5px;margin:0}
 .ranking-dual-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
 .ranking-new-layout{display:flex;flex-direction:column;gap:20px}
-.ranking-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.ranking-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}.rank-report-card{margin-top:0}.ranking-pair .rank-report-card{margin-top:44px}
 .rank-report-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
 .rank-report-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2)}
 .rank-report-title{font-size:13px;font-weight:600;color:var(--ink1)}
@@ -1810,11 +1810,7 @@ function rankNoteEdit(type){
   document.body.style.overflow='hidden';
   window._rankNoteSaveKey=key;
 }
-// 點 rel-modal 背景關閉
-document.addEventListener('click',function(e){
-  const m=document.getElementById('rel-modal');
-  if(m&&e.target===m)relCloseModal();
-});
+// rel-modal 不點背景關閉，只透過 ✕ 或取消按鈕關閉
 
 // 覆寫 relSave 以支援排名說明儲存
 function relSave(){
