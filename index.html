@@ -1157,20 +1157,20 @@ function buildCaseRateHTMLRaw(importRates,serviceRates){
 //  Ranking 項目
 // ══════════════════════════════════════
 function renderRankingItem(r,i,isVenue){
-  // YOY 顏色：上升(服務增加)=綠，下降=紅，NEW=藍
   function yoyHtml(yoy){
     if(!yoy||yoy==='—')return'';
     if(yoy.toUpperCase()==='NEW')return`<span style="font-size:11px;font-weight:700;background:#3a6ac8;color:#fff;border-radius:4px;padding:2px 6px">NEW</span>`;
     const v=parseFloat(yoy);
     if(isNaN(v))return`<span style="font-size:11px;color:var(--ink3)">${yoy}</span>`;
-    // 服務時間增加(數字變大)=正成長=綠色；減少=紅色
     const isUp=v>0;
     const color=isUp?'#1a8a6a':'#c94f3a';
     const arrow=isUp?'▲':'▼';
     return`<span style="font-size:13px;font-weight:700;color:${color}">${arrow} ${Math.abs(v).toFixed(1)}%</span>`;
   }
   const typeChip=r.type?`<span class="type-chip">${r.type}</span>`:'';
-  const noteHtml=r.note?`<div style="font-size:11px;color:var(--ink3);margin-top:4px;line-height:1.6;white-space:pre-wrap">${r.note}</div>`:'';
+  const noteHtml=r.note?`
+    <div class="rank-note hidden" style="font-size:11px;color:var(--ink3);line-height:1.6;margin-top:6px;padding-top:6px;border-top:0.5px dashed var(--border)">${r.note}</div>`:'';
+  const toggleBtn=r.note?`<button onclick="rankToggleNote(this)" aria-label="展開說明" style="border:none;background:none;cursor:pointer;padding:0;margin:0;line-height:1;height:14px;display:inline-flex;align-items:center;vertical-align:middle"><i class="ti ti-chevron-down" aria-hidden="true" style="font-size:12px;color:var(--ink3);transition:transform .2s;line-height:1"></i></button>`:'';
   return`<div class="rank-row" style="align-items:flex-start">
     ${rankBadge(i)}
     <div class="rank-info" style="flex:1">
@@ -1178,15 +1178,16 @@ function renderRankingItem(r,i,isVenue){
         <div class="rank-name" style="flex:1">${r.name}${typeChip}</div>
         <div style="flex-shrink:0">${yoyHtml(r.yoy)}</div>
       </div>
-      <div class="rank-sub">服務時間 ${fmt(r.time)} 分｜去年 ${r.lastTime>0?fmt(r.lastTime)+' 分':'—'}</div>
+      <div class="rank-sub" style="display:flex;align-items:center;gap:4px;line-height:1">
+        <span>服務時間 ${fmt(r.time)} 分｜去年 ${r.lastTime>0?fmt(r.lastTime)+' 分':'—'}</span>
+        ${toggleBtn}
+      </div>
       ${noteHtml}
     </div>
   </div>`;
 }
 
-// ══════════════════════════════════════
-//  Release 詳細表（參照圖二長條圖+表格）
-// ══════════════════════════════════════
+
 function buildReleaseDetail(data,color){
   if(!data||!data.detail||!data.detail.length)return'<div class="no-data" style="padding:10px">請匯入資料</div>';
   const depts=data.detailDepts||[];
