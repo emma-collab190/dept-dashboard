@@ -1170,7 +1170,7 @@ function renderRankingItem(r,i,isVenue){
   const typeChip=r.type?`<span class="type-chip">${r.type}</span>`:'';
   const noteHtml=r.note?`
     <div class="rank-note hidden" style="font-size:11px;color:var(--ink3);line-height:1.6;margin-top:6px;padding-top:6px;border-top:0.5px dashed var(--border)">${r.note}</div>`:'';
-  const toggleBtn=r.note?`<button onclick="rankToggleNote(this)" aria-label="展開說明" style="border:none;background:none;cursor:pointer;padding:0;margin:0;line-height:1;height:14px;display:inline-flex;align-items:center;vertical-align:middle"><i class="ti ti-chevron-down" aria-hidden="true" style="font-size:12px;color:var(--ink3);transition:transform .2s;line-height:1"></i></button>`:'';
+  const toggleBtn=r.note?`<button onclick="rankToggleNote(this)" aria-label="展開說明" style="border:none;background:none;cursor:pointer;padding:0;margin:0 0 0 2px;line-height:1;height:14px;display:inline-flex;align-items:center;vertical-align:middle"><span class="rank-toggle-arrow" style="font-size:11px;color:var(--ink3);transition:transform .2s;display:inline-block;line-height:1">▾</span></button>`:'';
   return`<div class="rank-row" style="align-items:flex-start">
     ${rankBadge(i)}
     <div class="rank-info" style="flex:1">
@@ -1875,11 +1875,11 @@ function renderRanking(){
 function rankToggleNote(btn){
   const card=btn.closest('.rank-row');
   const note=card.querySelector('.rank-note');
-  const icon=btn.querySelector('i');
+  const arrow=btn.querySelector('.rank-toggle-arrow');
   if(!note)return;
   const isOpen=!note.classList.contains('hidden');
-  if(isOpen){note.classList.add('hidden');icon.style.transform='';}
-  else{note.classList.remove('hidden');icon.style.transform='rotate(180deg)';}
+  if(isOpen){note.classList.add('hidden');if(arrow)arrow.style.transform='';}
+  else{note.classList.remove('hidden');if(arrow)arrow.style.transform='rotate(180deg)';}
 }
 
 function buildReleaseDetailTable(detail, depts, price){
