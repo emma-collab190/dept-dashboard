@@ -2317,6 +2317,8 @@ async function autoLoadCSVs(){
   await Promise.all(promises);
   updateMonthOpts();
   renderAll();
+  // 無論目前在哪頁，個人貢獻分析區塊都需要初始化（避免停在「⏳ 載入中…」）
+  renderContribTable(document.getElementById('contribContent'));
 }
 
 autoLoadCSVs();
