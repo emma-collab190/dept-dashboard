@@ -72,7 +72,7 @@ input[type=file]{display:none}
 .main{flex:1;overflow-y:auto;padding:22px 26px 60px}
 .page{display:none}
 .page.active{display:block;animation:fadeUp .3s ease both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0}to{opacity:1}}
 .page-head{margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--border)}
 .page-head h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:600;line-height:1.2}
 .page-head p{font-size:11px;color:var(--ink3);margin-top:3px;letter-spacing:.07em}
@@ -1802,6 +1802,8 @@ function rankNoteEdit(type){
   const key=(type||'rank')+'_'+month;
   const titleMap={'venue':'場域排名異動原因分析','supplier':'供應商排名異動原因分析','rank':'主管報告說明'};
   const modal=document.getElementById('rel-modal');
+  // 確保 modal 在 body 最頂層，避免 .page transform 建立 stacking context 造成遮擋
+  if(modal.parentNode!==document.body)document.body.appendChild(modal);
   document.getElementById('rel-modal-title').textContent='✏️ '+(titleMap[type]||'報告說明')+' — '+month+'月';
   document.getElementById('rel-editor').innerHTML=notes[key]||'';
   modal.style.display='flex';
