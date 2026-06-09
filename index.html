@@ -1810,6 +1810,12 @@ function rankNoteEdit(type){
   document.body.style.overflow='hidden';
   window._rankNoteSaveKey=key;
 }
+// 點 rel-modal 背景關閉
+document.addEventListener('click',function(e){
+  const m=document.getElementById('rel-modal');
+  if(m&&e.target===m)relCloseModal();
+});
+
 // 覆寫 relSave 以支援排名說明儲存
 function relSave(){
   const html=document.getElementById('rel-editor').innerHTML.trim();
