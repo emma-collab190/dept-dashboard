@@ -1168,8 +1168,9 @@ function renderRankingItem(r,i,isVenue){
     return`<span style="font-size:13px;font-weight:700;color:${color}">${arrow} ${Math.abs(v).toFixed(1)}%</span>`;
   }
   const typeChip=r.type?`<span class="type-chip">${r.type}</span>`:'';
-  const noteHtml=r.note?`
-    <div class="rank-note hidden" style="font-size:11px;color:var(--ink3);line-height:1.6;margin-top:6px;padding-top:6px;border-top:0.5px dashed var(--border)">${r.note}</div>`:'';
+  const noteTxt=r.note?r.note.replace(/\n/g,'<br>').replace(/(\d+[、.．])/g,'<br>$1').replace(/^<br>/,''):'';
+  const noteHtml=noteTxt?`
+    <div class="rank-note hidden" style="font-size:11px;color:var(--ink3);line-height:1.8;margin-top:6px;padding-top:6px;border-top:0.5px dashed var(--border)">${noteTxt}</div>`:'';
   const toggleBtn=r.note?`<button onclick="rankToggleNote(this)" aria-label="展開說明" style="border:none;background:none;cursor:pointer;padding:0;margin:0 0 0 2px;line-height:1;height:14px;display:inline-flex;align-items:center;vertical-align:middle"><span class="rank-toggle-arrow" style="font-size:11px;color:var(--ink3);transition:transform .2s;display:inline-block;line-height:1">▾</span></button>`:'';
   return`<div class="rank-row" style="align-items:flex-start">
     ${rankBadge(i)}
