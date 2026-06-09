@@ -1872,6 +1872,16 @@ function renderRanking(){
   if(noteEl) noteEl.innerHTML=notes['rank_'+month]||'<span style="color:var(--ink4)">尚無說明，點右上角✏️編輯</span>';
 }
 
+function rankToggleNote(btn){
+  const card=btn.closest('.rank-row');
+  const note=card.querySelector('.rank-note');
+  const icon=btn.querySelector('i');
+  if(!note)return;
+  const isOpen=!note.classList.contains('hidden');
+  if(isOpen){note.classList.add('hidden');icon.style.transform='';}
+  else{note.classList.remove('hidden');icon.style.transform='rotate(180deg)';}
+}
+
 function buildReleaseDetailTable(detail, depts, price){
   if(!detail||!detail.length) return '<div class="no-data">無當月明細資料</div>';
   const DEPT_COLORS=['#2a6049','#c8873a','#3a6ac8','#7c4dbc','#c94f3a'];
