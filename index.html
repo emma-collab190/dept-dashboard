@@ -2079,6 +2079,136 @@ function renderPersonal(){
 }
 
 // ══════════════════════════════════════
+//  CB 富文本編輯器 (個人貢獻分析用)
+// ══════════════════════════════════════
+const cbUndoStack=[],cbRedoStack=[];
+let cbSnapshotTimer=null;
+let cbCurrentQuarter='';
+function cbSnapshot(){
+  clearTimeout(cbSnapshotTimer);
+  cbSnapshotTimer=setTimeout(()=>{
+    const html=document.getElementById('cb-editor').innerHTML;
+    if(cbUndoStack.length===0||cbUndoStack[cbUndoStack.length-1]!==html){
+      cbUndoStack.push(html);
+      if(cbUndoStack.length>50)cbUndoStack.shift();
+      cbRedoStack.length=0;
+    }
+  },300);
+}
+function cbUndo(){
+  if(cbUndoStack.length<=1)return;
+  cbRedoStack.push(cbUndoStack.pop());
+  document.getElementById('cb-editor').innerHTML=cbUndoStack[cbUndoStack.length-1];
+}
+function cbRedo(){
+  if(!cbRedoStack.length)return;
+  const html=cbRedoStack.pop();
+  cbUndoStack.push(html);
+  document.getElementById('cb-editor').innerHTML=html;
+}
+function cbCmd(cmd,val){cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand(cmd,false,val||null);}
+function cbSetFontSize(s){if(!s)return;cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand('fontSize',false,s);}
+function cbClearFormat(){cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand('removeFormat',false,null);}
+function cbInsertTable(){
+  cbSnapshot();
+  const t='<table border="1" style="border-collapse:collapse;width:100%;margin:8px 0"><tr><th style="padding:6px 10px;background:var(--bg2)">欄位1</th><th style="padding:6px 10px;background:var(--bg2)">欄位2</th><th style="padding:6px 10px;background:var(--bg2)">欄位3</th></tr><tr><td style="padding:6px 10px">　</td><td style="padding:6px 10px">　</td><td style="padding:6px 10px">　</td></tr></table>';
+  document.getElementById('cb-editor').focus();
+  document.execCommand('insertHTML',false,t);
+}
+function cbInsertHr(){
+  cbSnapshot();
+  document.getElementById('cb-editor').focus();
+  document.execCommand('insertHTML',false,'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
+}
+// 表格欄列操作
+window.cbLastCell=null;
+document.addEventListener('mousedown',function(e){
+  let node=e.target;
+  while(node&&node!==document){
+    if(node.nodeName==='TD'||node.nodeName==='TH'){window.cbLastCell=node;return;}
+    node=node.parentNode;
+  }
+});
+function cbInsertColRight(){
+  cbSnapshot();
+  const cell=window.cbLastCell;
+  if(!cell)return alert('請先點選表格內的儲存格');
+  let table=cell;while(table&&table.nodeName!=='TABLE')table=table.parentNode;
+  if(!table)return;
+  const ci=cell.cellIndex;
+  for(let i=0;i<table.rows.length;i++){
+    const row=table.rows[i];
+    const isHead=row.parentNode.nodeName==='THEAD';
+    const el=document.createElement(isHead?'th':'td');
+    el.style.cssText=isHead?'padding:6px 10px;background:var(--bg2);border:1px solid #ccc':'padding:6px 10px;border:1px solid #ccc';
+    el.innerHTML=isHead?'新欄':'　';
+    row.insertBefore(el,row.cells[ci+1]||null);
+  }
+}
+function cbInsertColLeft(){
+  cbSnapshot();
+  const cell=window.cbLastCell;
+  if(!cell)return alert('請先點選表格內的儲存格');
+  let table=cell;while(table&&table.nodeName!=='TABLE')table=table.parentNode;
+  if(!table)return;
+  const ci=cell.cellIndex;
+  for(let i=0;i<table.rows.length;i++){
+    const row=table.rows[i];
+    const isHead=row.parentNode.nodeName==='THEAD';
+    const el=document.createElement(isHead?'th':'td');
+    el.style.cssText=isHead?'padding:6px 10px;background:var(--bg2);border:1px solid #ccc':'padding:6px 10px;border:1px solid #ccc';
+    el.innerHTML=isHead?'新欄':'　';
+    row.insertBefore(el,row.cells[ci]||null);
+  }
+}
+function cbDeleteCol(){
+  cbSnapshot();
+  const cell=window.cbLastCell;
+  if(!cell)return alert('請先點選表格內的儲存格');
+  let table=cell;while(table&&table.nodeName!=='TABLE')table=table.parentNode;
+  if(!table)return;
+  const ci=cell.cellIndex;
+  for(let i=0;i<table.rows.length;i++){
+    const row=table.rows[i];
+    if(row.cells[ci])row.deleteCell(ci);
+  }
+}
+function cbInsertRowAbove(){
+  cbSnapshot();
+  const cell=window.cbLastCell;
+  if(!cell)return alert('請先點選表格內的儲存格');
+  const row=cell.parentNode;
+  const newRow=row.parentNode.insertBefore(document.createElement('tr'),row);
+  for(let i=0;i<row.cells.length;i++){
+    const td=newRow.insertCell();
+    td.style.cssText='padding:6px 10px;border:1px solid #ccc';
+    td.innerHTML='　';
+  }
+}
+function cbInsertRowBelow(){
+  cbSnapshot();
+  const cell=window.cbLastCell;
+  if(!cell)return alert('請先點選表格內的儲存格');
+  const row=cell.parentNode;
+  const newRow=row.parentNode.insertBefore(document.createElement('tr'),row.nextSibling);
+  for(let i=0;i<row.cells.length;i++){
+    const td=newRow.insertCell();
+    td.style.cssText='padding:6px 10px;border:1px solid #ccc';
+    td.innerHTML='　';
+  }
+}
+function cbDeleteRow(){
+  cbSnapshot();
+  const cell=window.cbLastCell;
+  if(!cell)return alert('請先點選表格內的儲存格');
+  cell.parentNode.parentNode.removeChild(cell.parentNode);
+}
+function cbToggleColMenu(){
+  const m=document.getElementById('cb-col-menu');
+  if(m)m.style.display=m.style.display==='none'?'block':'none';
+}
+
+// ══════════════════════════════════════
 //  個人貢獻分析
 // ══════════════════════════════════════
 const CONTRIB_LOCAL_KEY = 'contribEditData';
@@ -2402,117 +2532,4 @@ autoLoadCSVs();
     </div>
   </div>
 </div>
-
-<script>
-// ── cb editor undo/redo ──
-const cbUndoStack=[],cbRedoStack=[];
-let cbSnapshotTimer=null;
-function cbSnapshot(){
-  clearTimeout(cbSnapshotTimer);
-  cbSnapshotTimer=setTimeout(()=>{
-    const html=document.getElementById('cb-editor').innerHTML;
-    if(cbUndoStack.length===0||cbUndoStack[cbUndoStack.length-1]!==html){
-      cbUndoStack.push(html);
-      if(cbUndoStack.length>50)cbUndoStack.shift();
-      cbRedoStack.length=0;
-    }
-  },300);
-}
-function cbUndo(){
-  if(cbUndoStack.length<=1)return;
-  cbRedoStack.push(cbUndoStack.pop());
-  const html=cbUndoStack[cbUndoStack.length-1];
-  document.getElementById('cb-editor').innerHTML=html;
-}
-function cbRedo(){
-  if(!cbRedoStack.length)return;
-  const html=cbRedoStack.pop();
-  cbUndoStack.push(html);
-  document.getElementById('cb-editor').innerHTML=html;
-}
-function cbCmd(cmd,val){cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand(cmd,false,val||null);}
-function cbSetFontSize(s){if(!s)return;cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand('fontSize',false,s);}
-function cbClearFormat(){cbSnapshot();document.getElementById('cb-editor').focus();document.execCommand('removeFormat',false,null);}
-function cbInsertTable(){
-  cbSnapshot();
-  const t='<table border="1" style="border-collapse:collapse;width:100%;margin:8px 0"><tr><th style="padding:6px 10px;background:var(--bg2)">欄位1</th><th style="padding:6px 10px;background:var(--bg2)">欄位2</th><th style="padding:6px 10px;background:var(--bg2)">欄位3</th></tr><tr><td style="padding:6px 10px">　</td><td style="padding:6px 10px">　</td><td style="padding:6px 10px">　</td></tr></table>';
-  document.getElementById('cb-editor').focus();
-  document.execCommand('insertHTML',false,t);
-}
-function cbInsertHr(){
-  cbSnapshot();
-  document.getElementById('cb-editor').focus();
-  document.execCommand('insertHTML',false,'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
-}
-
-// ── 表格輔助：記住最後點選的儲存格 ──
-window.cbLastCell = null;
-document.addEventListener('mousedown', function(e){
-  let node = e.target;
-  while(node && node !== document){
-    if(node.nodeName==='TD'||node.nodeName==='TH'){ window.cbLastCell=node; return; }
-    node = node.parentNode;
-  }
-});
-function cbGetCurrentCell(){
-  return window.cbLastCell;
-}
-function cbGetCurrentTable(){
-  const cell=window.cbLastCell;
-  if(!cell)return null;
-  let node=cell;
-  while(node){if(node.nodeName==='TABLE')return node;node=node.parentNode;}
-  return null;
-}
-
-// 插入欄（右側）
-function cbInsertColRight(){
-  cbSnapshot();
-  const cell=window.cbLastCell;
-  if(!cell)return alert('請先點選表格內的儲存格');
-  let table=cell;while(table&&table.nodeName!=='TABLE')table=table.parentNode;
-  if(!table)return;
-  const ci=cell.cellIndex;
-  for(let i=0;i<table.rows.length;i++){
-    const row=table.rows[i];
-    const isHead=row.parentNode.nodeName==='THEAD';
-    const el=document.createElement(isHead?'th':'td');
-    el.style.cssText=isHead?'padding:6px 10px;background:var(--bg2);border:1px solid #ccc':'padding:6px 10px;border:1px solid #ccc';
-    el.innerHTML=isHead?'新欄':'　';
-    row.insertBefore(el,row.cells[ci+1]||null);
-  }
-  document.getElementById('cb-col-menu').style.display='none';
-}
-// 插入欄（左側）
-function cbInsertColLeft(){
-  cbSnapshot();
-  const cell=window.cbLastCell;
-  if(!cell)return alert('請先點選表格內的儲存格');
-  let table=cell;while(table&&table.nodeName!=='TABLE')table=table.parentNode;
-  if(!table)return;
-  const ci=cell.cellIndex;
-  for(let i=0;i<table.rows.length;i++){
-    const row=table.rows[i];
-    const isHead=row.parentNode.nodeName==='THEAD';
-    const el=document.createElement(isHead?'th':'td');
-    el.style.cssText=isHead?'padding:6px 10px;background:var(--bg2);border:1px solid #ccc':'padding:6px 10px;border:1px solid #ccc';
-    el.innerHTML=isHead?'新欄':'　';
-    row.insertBefore(el,row.cells[ci]||null);
-  }
-  document.getElementById('cb-col-menu').style.display='none';
-}
-// 插入列（下方）
-
-// 插入列（上方）
-
-// 刪除目前欄
-
-// 刪除目前列
-
-// 欄列選單開關
-function cbToggleColMenu(){
-  const m=document.getElementById('cb-col-menu');
-  if(m)m.style.display=m.style.display==='none'?'block':'none';
-}
-// 取得游標所在的 td/th
 
