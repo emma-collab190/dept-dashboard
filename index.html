@@ -634,7 +634,7 @@ input[type=file]{display:none}
       <h1>個人貢獻分析</h1>
       <p>年度個人貢獻分析｜來源：GitHub CSV</p>
     </div>
-    <div id="contribContent"><div class="no-data" style="padding:40px;text-align:center">⏳ 載入中…</div></div>
+    <div id="contribContent"></div>
   </div>
 
   <!-- 個人工作表現 -->
@@ -753,6 +753,10 @@ function navTo(page){
   document.getElementById('page-'+page).classList.add('active');
   document.getElementById('nav-'+page).classList.add('active');
   currentPage=page;renderPage(page);
+  // 個人貢獻分析需要強制重繪（不依賴 renderAll 的 currentPage 判斷）
+  if(page==='contribution'){
+    renderContribTable(document.getElementById('contribContent'));
+  }
 }
 
 // ══════════════════════════════════════
