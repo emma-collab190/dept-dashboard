@@ -74,8 +74,8 @@ input[type=file]{display:none}
 
 /* MAIN */
 .main{flex:1;overflow-y:auto;padding:22px 26px 60px}
-.page{display:none}
-.page.active{display:block;animation:fadeUp .3s ease both}
+.page{display:none;width:100%}
+.page.active{display:block;width:100%;animation:fadeUp .3s ease both}
 @keyframes fadeUp{from{opacity:0}to{opacity:1}}
 .page-head{margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--border)}
 .page-head h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:600;line-height:1.2}
@@ -580,6 +580,7 @@ input[type=file]{display:none}
       </div>
     </div>
   </div>
+</div><!-- /page-ranking -->
 
   <div class="page" id="page-release">
     <div class="page-head"><h1>系統驗測監控</h1><p>Release 項目驗收及內部計價｜來源：Release年度累積數 CSV</p></div>
