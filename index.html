@@ -1434,11 +1434,18 @@ function wlOpenModal(key){
       document.getElementById('wl-month').value=parseInt(mo);
     }
   } else {
-    // 新增：預設當前月份
     document.getElementById('wl-title').value='';
     document.getElementById('wl-editor').innerHTML='';
-    document.getElementById('wl-year').value='2026';
-    document.getElementById('wl-month').value=month;
+    if(key){
+      // 從 key 解析年月（例如 '2026/06'）
+      const [kyr,kmo]=key.split('/');
+      document.getElementById('wl-year').value=kyr||'2026';
+      document.getElementById('wl-month').value=parseInt(kmo||month);
+    } else {
+      // 純新增：用頁面月份選擇器
+      document.getElementById('wl-year').value='2026';
+      document.getElementById('wl-month').value=month;
+    }
   }
   // 開啟時清空 undo/redo stack，並存入初始快照
   wlUndoStack.length=0;
