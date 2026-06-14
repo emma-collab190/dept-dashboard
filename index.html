@@ -1432,11 +1432,17 @@ function wlOpenModal(key){
       document.getElementById('wl-month').value=parseInt(mo);
     }
   } else {
-    // 新增：預設當前月份
+    // 新增：若有傳入 key（從 CSV 編輯進來），用 key 的年月；否則用頁面月份選擇器
     document.getElementById('wl-title').value='';
     document.getElementById('wl-editor').innerHTML='';
-    document.getElementById('wl-year').value='2026';
-    document.getElementById('wl-month').value=month;
+    if(key){
+      const [kyr,kmo]=key.split('/');
+      document.getElementById('wl-year').value=kyr||'2026';
+      document.getElementById('wl-month').value=parseInt(kmo||month);
+    } else {
+      document.getElementById('wl-year').value='2026';
+      document.getElementById('wl-month').value=month;
+    }
   }
   // 開啟時清空 undo/redo stack，並存入初始快照
   wlUndoStack.length=0;
