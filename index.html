@@ -1423,29 +1423,20 @@ function wlOpenModal(key){
   const modal=document.getElementById('wl-modal');
   modal.style.display='flex';
   document.body.style.overflow='hidden';
+  // 年月永遠從傳入的 key 解析，不從 localStorage 記錄讀
   if(key){
-    // 載入既有紀錄編輯
+    const [kyr,kmo]=key.split('/');
     const rec=wlGetAll().find(r=>r.key===key);
-    if(rec){
-      document.getElementById('wl-title').value=rec.title||'';
-      document.getElementById('wl-editor').innerHTML=rec.html||'';
-      const [yr,mo]=key.split('/');
-      document.getElementById('wl-year').value=yr;
-      document.getElementById('wl-month').value=parseInt(mo);
-    }
+    document.getElementById('wl-title').value=rec?rec.title||'':'';
+    document.getElementById('wl-editor').innerHTML=rec?rec.html||'':'';
+    document.getElementById('wl-year').value=kyr||'2026';
+    document.getElementById('wl-month').value=parseInt(kmo||month);
   } else {
+    // 純新增：用頁面月份選擇器
     document.getElementById('wl-title').value='';
     document.getElementById('wl-editor').innerHTML='';
-    if(key){
-      // 從 key 解析年月（例如 '2026/06'）
-      const [kyr,kmo]=key.split('/');
-      document.getElementById('wl-year').value=kyr||'2026';
-      document.getElementById('wl-month').value=parseInt(kmo||month);
-    } else {
-      // 純新增：用頁面月份選擇器
-      document.getElementById('wl-year').value='2026';
-      document.getElementById('wl-month').value=month;
-    }
+    document.getElementById('wl-year').value='2026';
+    document.getElementById('wl-month').value=month;
   }
   // 開啟時清空 undo/redo stack，並存入初始快照
   wlUndoStack.length=0;
