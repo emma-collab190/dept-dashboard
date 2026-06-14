@@ -1302,6 +1302,8 @@ function renderOverview(){
 
 // ══ 工作日誌 - Modal 編輯器
 const WL_KEY='worklog_records';
+function wlGetAll(){try{return JSON.parse(localStorage.getItem(WL_KEY)||'[]');}catch{return[];}}
+function wlSetAll(arr){localStorage.setItem(WL_KEY,JSON.stringify(arr));}
 
 // 產生顯示模式 HTML
 function wlViewHTML(rec,key){
