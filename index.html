@@ -1410,9 +1410,11 @@ function wlOpenModalWithCSV(key){
   // 開啟 modal
   wlOpenModal(key);
   // 等 modal 開啟後填入內容
+  // 只有在 localStorage 沒有此月份記錄時，才用 CSV 預填（避免蓋掉已儲存的最終版）
   setTimeout(()=>{
     const ed=document.getElementById('wl-editor');
-    if(ed&&html) ed.innerHTML=html;
+    const hasRecord=wlGetAll().some(r=>r.key===key);
+    if(ed&&html&&!hasRecord) ed.innerHTML=html;
     wlUndoStack.length=0;wlRedoStack.length=0;
     setTimeout(wlSnapshot,100);
   },150);
