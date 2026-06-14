@@ -1487,6 +1487,7 @@ function wlRemoveLink(){
   document.execCommand('unlink',false,null);
 }
 // ── 自訂 Undo/Redo Stack ──
+let wlSnapTimer=null;
 const wlUndoStack=[];
 const wlRedoStack=[];
 function wlSnapshot(){
