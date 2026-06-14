@@ -1390,272 +1390,211 @@ function wlInlineCancel(key){
   const viewEl=document.getElementById('worklogContent');
   if(viewEl)viewEl.innerHTML=wlViewHTML(rec,key);
 }
-function wlOpenModalWithCSV(key){
-  // 把 CSV 內容轉成 HTML 預填進編輯器
-  const mo=parseInt((key.split('/')[1]||'0'));
+// ══════════════════════════════════════
+//  工作成果 - 核心工具函數
+// ══════════════════════════════════════
+
+// key 統一格式：YYYY/MM（補零）
+function wlNormalizeKey(key){
+  if(!key)return '';
+  const [yr,mo]=key.split('/');
+  return yr+'/'+String(parseInt(mo||'0')).padStart(2,'0');
+}
+
+// 從 CSV 取得某月純文字
+function wlGetCsvText(mo){
   const csvRows=raw.worklog||[];
   const re=/^(20\d\d)\/(0?[1-9]|1[0-2])$/;
-  let importTxt='',serviceTxt='';
+  let txt='';
   csvRows.forEach(r=>{
     if(!r||!r[0])return;
     const m=r[0].trim().match(re);
-    if(m&&parseInt(m[2])===mo){importTxt=(r[1]||'').trim();serviceTxt=(r[2]||'').trim();}
+    if(m&&parseInt(m[2])===parseInt(mo)) txt=(r[1]||'').trim();
   });
-  function txtToHtml(txt){
-    if(!txt)return '';
-    return txt.split('\n').map(l=>l.trim()?'<p>'+l+'</p>':'<br>').join('');
-  }
-  let html='';
-  if(importTxt) html+=txtToHtml(importTxt);
-  // 開啟 modal
-  wlOpenModal(key);
-  // 只有在 localStorage 沒有記錄時，才用 CSV 內容預填（避免蓋掉已編輯的版本）
-  const hasLocalRecord = wlGetAll().some(r=>r.key===key);
-  if(!hasLocalRecord){
-    setTimeout(()=>{
-      const ed=document.getElementById('wl-editor');
-      if(ed&&html) ed.innerHTML=html;
-      wlUndoStack.length=0;wlRedoStack.length=0;
-      setTimeout(wlSnapshot,100);
-    },150);
-  }
+  return txt;
 }
-function wlOpenModal(key){
+
+// 純文字 → HTML（escape 後每行包 <p>）
+function wlTxtToHtml(txt){
+  if(!txt)return '';
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return txt.split('\n').map(l=>l.trim()?'<p style="margin:2px 0">'+esc(l)+'</p>':'<br>').join('');
+}
+
+// ══════════════════════════════════════
+//  工作成果 - 顯示單月內容
+//  優先順序：localStorage → CSV → 無資料
+// ══════════════════════════════════════
+function wlViewRecord(rawKey){
+  const key=wlNormalizeKey(rawKey);
+  const viewEl=document.getElementById('worklogContent');
+  if(!viewEl)return;
+
+  const rec=wlGetAll().find(r=>wlNormalizeKey(r.key)===key);
+
+  if(rec){
+    // ① localStorage 有記錄 → 顯示最終版
+    viewEl.innerHTML=
+      '<div style="font-size:12px;font-weight:600;font-family:\'Noto Serif TC\',serif;margin-bottom:8px;color:var(--accent)">'+rec.title+'</div>'+
+      '<div style="font-size:11px;color:var(--ink3);margin-bottom:14px">更新：'+rec.updatedAt+'</div>'+
+      '<div style="font-size:13px;line-height:1.8;color:var(--ink2);min-height:200px;word-break:break-word;overflow-wrap:anywhere" class="wl-content-display-cls">'+rec.html+'</div>'+
+      '<div style="display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);justify-content:flex-end">'+
+      '<button onclick="wlOpenEditor(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue)">✏️ 編輯</button>'+
+      '<button onclick="wlDelete(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--accent3)">🗑️ 刪除</button></div>';
+  } else {
+    // ② 查 CSV
+    const mo=key.split('/')[1];
+    const csvTxt=wlGetCsvText(mo);
+    if(csvTxt){
+      // CSV 有資料 → 顯示第一版
+      viewEl.innerHTML=
+        '<div class="work-month-badge">'+key+'</div>'+
+        '<div style="font-size:13px;line-height:1.8;color:var(--ink2);word-break:break-word;margin-top:10px" class="wl-content-display-cls">'+wlTxtToHtml(csvTxt)+'</div>'+
+        '<div style="display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);justify-content:flex-end">'+
+        '<button onclick="wlOpenEditor(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue)">✏️ 編輯</button></div>';
+    } else {
+      // ③ 無資料
+      viewEl.innerHTML=
+        '<div class="work-month-badge">'+key+'</div>'+
+        '<div class="no-data">本月尚無紀錄</div>'+
+        '<div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">'+
+        '<button onclick="wlOpenEditor(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue)">✏️ 新增</button></div>';
+    }
+  }
+  const right=document.getElementById('wl-right');
+  if(right)right.scrollTop=0;
+  // 更新左側清單 active 狀態
+  document.querySelectorAll('#wl-record-list a').forEach(a=>{
+    a.style.fontWeight=a.textContent.trim()===key?'800':'600';
+    a.style.textDecoration=a.textContent.trim()===key?'underline':'none';
+  });
+}
+
+// ══════════════════════════════════════
+//  工作成果 - 開啟編輯器（唯一入口）
+//  localStorage 有記錄 → 載入最終版
+//  localStorage 無記錄 → 預填 CSV 內容
+// ══════════════════════════════════════
+function wlOpenEditor(rawKey){
+  const key=wlNormalizeKey(rawKey);
+  const [yr,mo]=key.split('/');
+
+  // 取得要填入編輯器的 HTML
+  const rec=wlGetAll().find(r=>wlNormalizeKey(r.key)===key);
+  let initHtml='', initTitle='';
+  if(rec){
+    // localStorage 有記錄 → 用最終版
+    initHtml=rec.html||'';
+    initTitle=rec.title||'';
+  } else {
+    // 無記錄 → 用 CSV 預填
+    initHtml=wlTxtToHtml(wlGetCsvText(mo));
+    initTitle='';
+  }
+
+  // 開啟 modal
   const modal=document.getElementById('wl-modal');
   modal.style.display='flex';
   document.body.style.overflow='hidden';
-  if(key){
-    // 載入既有紀錄編輯
-    const rec=wlGetAll().find(r=>r.key===key);
-    if(rec){
-      document.getElementById('wl-title').value=rec.title||'';
-      document.getElementById('wl-editor').innerHTML=rec.html||'';
-      const [yr,mo]=key.split('/');
-      document.getElementById('wl-year').value=yr;
-      document.getElementById('wl-month').value=parseInt(mo);
-    }
-  } else {
-    // 新增：若有傳入 key（從 CSV 編輯進來），用 key 的年月；否則用頁面月份選擇器
-    document.getElementById('wl-title').value='';
-    document.getElementById('wl-editor').innerHTML='';
-    if(key){
-      const [kyr,kmo]=key.split('/');
-      document.getElementById('wl-year').value=kyr||'2026';
-      document.getElementById('wl-month').value=parseInt(kmo||month);
-    } else {
-      document.getElementById('wl-year').value='2026';
-      document.getElementById('wl-month').value=month;
-    }
-  }
-  // 開啟時清空 undo/redo stack，並存入初始快照
+  document.getElementById('wl-title').value=initTitle;
+  document.getElementById('wl-year').value=yr||'2026';
+  document.getElementById('wl-month').value=parseInt(mo||month);
   wlUndoStack.length=0;
   wlRedoStack.length=0;
+  // 填入內容後 focus 並建立初始快照
   setTimeout(()=>{
-    document.getElementById('wl-editor').focus();
-    wlSnapshot(); // 存入初始狀態作為第一個快照
-  },100);
+    const ed=document.getElementById('wl-editor');
+    ed.innerHTML=initHtml;
+    ed.focus();
+    wlSnapshot();
+  },80);
 }
-function wlCloseModal(force){
-  if(!force){
-    const html=document.getElementById('wl-editor').innerHTML.trim();
-    if(html&&html!=='<br>'&&html!==''){
-      if(!confirm('內容尚未儲存，確定要離開嗎？'))return;
-    }
-  }
-  document.getElementById('wl-modal').style.display='none';
-  document.body.style.overflow='';
-}
-// 點 modal 背景不關閉（避免誤觸）
-const WL_KEY_DUMMY='';// dummy
-function wlGetAll(){try{return JSON.parse(localStorage.getItem(WL_KEY)||'[]');}catch{return[];}}
-function wlSetAll(arr){localStorage.setItem(WL_KEY,JSON.stringify(arr));}
-function wlCmd(cmd,val){wlSnapshot();document.getElementById('wl-editor').focus();document.execCommand(cmd,false,val||null);}
-function wlSetFontSize(size){
-  if(!size)return;
-  wlSnapshot();
-  document.getElementById('wl-editor').focus();
-  document.execCommand('fontSize',false,size);
-}
-function wlClearFormat(){
-  wlSnapshot();
-  document.getElementById('wl-editor').focus();
-  document.execCommand('removeFormat',false,null);
-  document.execCommand('formatBlock',false,'p');
-}
-function wlInsertLink(){wlSnapshot();
-  const url=prompt('請輸入網址：','https://');
-  if(!url||url==='https://')return;
-  const text=window.getSelection().toString()||url;
-  document.getElementById('wl-editor').focus();
-  document.execCommand('insertHTML',false,`<a href="${url}" target="_blank" style="color:var(--blue);text-decoration:underline">${text}</a>`);
-}
-function wlRemoveLink(){
-  document.getElementById('wl-editor').focus();
-  document.execCommand('unlink',false,null);
-}
-// ── 自訂 Undo/Redo Stack ──
-const wlUndoStack=[];
-const wlRedoStack=[];
-function wlSnapshot(){
-  const ed=document.getElementById('wl-editor');
-  if(!ed)return;
-  const html=ed.innerHTML;
-  if(wlUndoStack.length&&wlUndoStack[wlUndoStack.length-1]===html)return;
-  wlUndoStack.push(html);
-  if(wlUndoStack.length>50)wlUndoStack.shift();
-  wlRedoStack.length=0;
-}
-function wlUndo(){
-  const ed=document.getElementById('wl-editor');
-  if(!ed||wlUndoStack.length<2)return;
-  wlRedoStack.push(wlUndoStack.pop());
-  ed.innerHTML=wlUndoStack[wlUndoStack.length-1]||'';
-}
-function wlRedo(){
-  const ed=document.getElementById('wl-editor');
-  if(!ed||!wlRedoStack.length)return;
-  const html=wlRedoStack.pop();
-  wlUndoStack.push(html);
-  ed.innerHTML=html;
-}
+
+// 相容舊呼叫（保留這兩個函數名，都指向新入口）
+function wlOpenModal(key){ if(key) wlOpenEditor(key); else wlOpenEditor('2026/'+String(month).padStart(2,'0')); }
+function wlOpenModalWithCSV(key){ wlOpenEditor(key); }
+
+// ══════════════════════════════════════
+//  工作成果 - 儲存
+// ══════════════════════════════════════
 function wlSave(){
   const title=document.getElementById('wl-title').value.trim();
   const yr=document.getElementById('wl-year').value;
   const mo=document.getElementById('wl-month').value;
   const html=document.getElementById('wl-editor').innerHTML.trim();
   if(!html||html==='<br>'||html===''){alert('內容不可空白');return;}
-  const records=wlGetAll();
   const key=yr+'/'+String(mo).padStart(2,'0');
-  const idx=records.findIndex(r=>r.key===key);
-  const rec={key,year:yr,month:mo,title:title||key+' 工作成果',html,updatedAt:new Date().toLocaleString('zh-TW')};
-  if(idx>=0)records[idx]=rec; else records.unshift(rec);
+  const records=wlGetAll();
+  // 統一比較時用 normalize
+  const idx=records.findIndex(r=>wlNormalizeKey(r.key)===key);
+  const rec={key,year:yr,month:parseInt(mo),title:title||key+' 工作成果',html,updatedAt:new Date().toLocaleString('zh-TW')};
+  if(idx>=0) records[idx]=rec; else records.unshift(rec);
   wlSetAll(records);
-  // 立即關閉 modal 並顯示剛儲存的內容
   document.getElementById('wl-title').value='';
   document.getElementById('wl-editor').innerHTML='';
   wlCloseModal(true);
   renderWorklogList();
   wlViewRecord(key);
-  // 顯示儲存成功訊息
   const msg=document.getElementById('wl-save-msg');
   if(msg){msg.style.display='block';setTimeout(()=>{msg.style.display='none';},1500);}
 }
+
+// ══════════════════════════════════════
+//  工作成果 - 刪除
+// ══════════════════════════════════════
+function wlDelete(rawKey){
+  const key=wlNormalizeKey(rawKey);
+  if(!confirm('確定刪除「'+key+'」的儲存記錄？\n刪除後將顯示 CSV 原始內容。'))return;
+  let records=wlGetAll();
+  records=records.filter(r=>wlNormalizeKey(r.key)!==key);
+  wlSetAll(records);
+  renderWorklogList();
+  wlViewRecord(key);
+}
+
+// ══════════════════════════════════════
+//  工作成果 - 其他工具
+// ══════════════════════════════════════
 function wlClear(){
   document.getElementById('wl-title').value='';
   document.getElementById('wl-editor').innerHTML='';
 }
-function wlLoad(key){wlOpenModal(key);}
-function wlDelete(key){
-  if(!confirm('確定刪除此紀錄？'))return;
-  let records=wlGetAll();
-  records=records.filter(r=>r.key!==key);
-  wlSetAll(records);
-  renderWorklogList();
-  wlViewRecord(key); // 刪除後顯示 CSV 原始內容（若有）
-}
-function wlViewRecord(key){
-  const records=wlGetAll();
-  const rec=records.find(r=>r.key===key);
-  const viewEl=document.getElementById('worklogContent');
-  if(!viewEl)return;
-
-  if(rec){
-    viewEl.innerHTML=
-      '<div style="font-size:12px;font-weight:600;font-family:\'Noto Serif TC\',serif;margin-bottom:8px;color:var(--accent)">'+rec.title+'</div>'+
-      '<div style="font-size:11px;color:var(--ink3);margin-bottom:14px">更新：'+rec.updatedAt+'</div>'+
-      '<div style="font-size:13px;line-height:1.8;color:var(--ink2);min-height:200px;word-break:break-word;overflow-wrap:anywhere" class="wl-content-display-cls">'+rec.html+'</div>'+
-      '<div style="display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);justify-content:flex-end">'+
-      '<button onclick="wlOpenModal(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue)">✏️ 編輯</button>'+
-      '<button onclick="wlDelete(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--accent3)">🗑️ 刪除</button></div>';
-  } else {
-    // 從 CSV 讀取，分導入課和客服課
-    const mo=parseInt((key.split('/')[1]||'0'));
-    const csvRows=raw.worklog||[];
-    const re=/^(20\d\d)\/(0?[1-9]|1[0-2])$/;
-    let importTxt='',serviceTxt='';
-    csvRows.forEach(r=>{
-      if(!r||!r[0])return;
-      const m=r[0].trim().match(re);
-      if(m&&parseInt(m[2])===mo){importTxt=(r[1]||'').trim();serviceTxt=(r[2]||'').trim();}
-    });
-    function txtToHtml(txt){
-      if(!txt)return '<span style="color:var(--ink4)">本月尚無紀錄</span>';
-      const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      return txt.split('\n').map(l=>l.trim()?'<p style="margin:2px 0">'+esc(l)+'</p>':'<br>').join('');
-    }
-    if(importTxt||serviceTxt){
-      viewEl.innerHTML=
-        '<div class="work-month-badge">'+key+'</div>'+
-        '<div style="font-size:13px;line-height:1.8;color:var(--ink2);word-break:break-word;margin-top:10px" class="wl-content-display-cls">'+txtToHtml(importTxt)+'</div>'+
-        '<div style="display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);justify-content:flex-end">'+
-        '<button onclick="wlOpenModalWithCSV(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue)">✏️ 編輯</button></div>';
-    } else {
-      viewEl.innerHTML='<div class="work-month-badge">'+key+'</div><div class="no-data">本月尚無紀錄</div>'+
-        '<div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">'+
-        '<button onclick="wlOpenModal(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue)">✏️ 新增</button></div>';
-
-    }
-  }
-  const right=document.getElementById('wl-right');
-  if(right)right.scrollTop=0;
-}
+function wlLoad(key){wlOpenEditor(key);}
 
 function wlGetAllKeys(){
-  // 合併 CSV 月份 + localStorage 月份
-  const localKeys=wlGetAll().map(r=>r.key);
+  const localKeys=wlGetAll().map(r=>wlNormalizeKey(r.key));
   const csvKeys=[];
-  const wlRows=raw.worklog||[];
   const re=/^(20\d\d)\/(0?[1-9]|1[0-2])$/;
-  wlRows.forEach(r=>{
+  (raw.worklog||[]).forEach(r=>{
     if(!r||!r[0])return;
     const m=r[0].trim().match(re);
-    if(m&&r[1]&&r[1].trim())csvKeys.push(m[1]+'/'+m[2].padStart(2,'0'));
+    if(m&&r[1]&&r[1].trim()) csvKeys.push(m[1]+'/'+m[2].padStart(2,'0'));
   });
-  // 合併去重，依 key 排序（最新在前）
   const all=[...new Set([...csvKeys,...localKeys])];
   return all.sort((a,b)=>b.localeCompare(a));
 }
+
 function renderWorklogList(){
   const listEl=document.getElementById('wl-record-list');
   if(!listEl)return;
   const keys=wlGetAllKeys();
   if(!keys.length){listEl.innerHTML='<div style="font-size:12px;color:var(--ink4);padding:6px 8px">尚無紀錄</div>';return;}
-  listEl.innerHTML=keys.map(k=>'<div style="padding:5px 8px;border-radius:6px;transition:background .15s" onmouseover="this.style.background=\'var(--alight)\'" onmouseout="this.style.background=\'transparent\'"><a href="#" onclick="wlViewRecord(\''+k+'\');return false;" style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--accent);font-weight:600;text-decoration:none;cursor:pointer;display:block">'+k+'</a></div>').join('');
-}
-function renderWorklogView(){
-  const key='2026/'+String(month).padStart(2,'0');
-  const records=wlGetAll();
-  const localRec=records.find(r=>r.key===key);
-  const csvContent=parseWorklog(month);
-  const viewEl=document.getElementById('worklogContent');
-  if(!viewEl)return;
-  
-  
-  if(localRec){
-    viewEl.innerHTML='<div style="font-size:12px;font-weight:600;font-family:\'Noto Serif TC\',serif;margin-bottom:8px;color:var(--accent)">'+localRec.title+'</div><div style="font-size:11px;color:var(--ink3);margin-bottom:14px">更新：'+localRec.updatedAt+'</div><div style="font-size:13px;line-height:1.8;color:var(--ink2);min-height:200px;word-break:break-word;overflow-wrap:anywhere" class="wl-content-display-cls">'+localRec.html+'</div><div style="display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);justify-content:flex-end"><button onclick="wlOpenModal(\''+key+'\'  )" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue);font-family:\'Noto Sans TC\',sans-serif">✏️ 編輯</button><button onclick="wlDelete(\''+key+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--accent3);font-family:\'Noto Sans TC\',sans-serif">🗑️ 刪除</button></div>';
-  } else if(csvContent){
-    const _csvEsc=csvContent.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    viewEl.innerHTML='<div class="work-month-badge">2026 / '+String(month).padStart(2,'0')+'</div><div class="work-content" style="white-space:pre-wrap;word-break:break-word">'+_csvEsc+'</div><div style="display:flex;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border);justify-content:flex-end"><button onclick="wlOpenModalWithCSV(\'2026/'+String(month).padStart(2,'0')+'\')" style="font-size:12px;padding:5px 14px;border:1px solid var(--border2);border-radius:5px;background:var(--white);cursor:pointer;color:var(--blue)">✏️ 編輯</button></div>';
-  } else {
-    viewEl.innerHTML='<div class="no-data">本月尚無紀錄</div>';
-  }
-  const listEl=document.getElementById('wl-record-list');
-  if(!listEl)return;
-  if(!records.length){listEl.innerHTML='<div style="font-size:12px;color:var(--ink4)">尚無儲存紀錄</div>';return;}
-  listEl.innerHTML=records.map(r=>'<div style="padding:5px 8px;border-radius:6px;transition:background .15s" onmouseover="this.style.background=\'var(--alight)\'" onmouseout="this.style.background=\'transparent\'"><a href="#" onclick="wlViewRecord(\''+r.key+'\');return false;" style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--accent);font-weight:600;text-decoration:none;cursor:pointer;display:block">'+r.key+'</a></div>').join('');
-}
-function renderWorklog(){
-  renderWorklogList();
-  // 自動顯示最新有資料的月份（合併 CSV + localStorage）
-  const keys=wlGetAllKeys();
-  if(keys.length){
-    wlViewRecord(keys[0]); // keys 已排序，第一個是最新
-  } else {
-    const viewEl=document.getElementById('worklogContent');
-    if(viewEl)viewEl.innerHTML='<div class="no-data">尚無資料</div>';
-  }
+  listEl.innerHTML=keys.map(k=>
+    '<div style="padding:5px 8px;border-radius:6px;transition:background .15s" onmouseover="this.style.background=\'var(--alight)\'" onmouseout="this.style.background=\'transparent\'">'+
+    '<a href="#" onclick="wlViewRecord(\''+k+'\');return false;" style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--accent);font-weight:600;text-decoration:none;cursor:pointer;display:block">'+k+'</a></div>'
+  ).join('');
 }
 
+function renderWorklog(){
+  renderWorklogList();
+  const keys=wlGetAllKeys();
+  if(keys.length){
+    wlViewRecord(keys[0]);
+  } else {
+    const viewEl=document.getElementById('worklogContent');
+    if(viewEl)viewEl.innerHTML='<div class="no-data">尚無資料，請匯入 CSV 或點右上角「✏️ 新增」</div>';
+  }
+}
 
 function renderUtilization(){
   const ud=parseUtil();const mi=month-1;
