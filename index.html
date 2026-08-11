@@ -1804,7 +1804,7 @@ function renderFullService(){
     const total=r.slice(3,3+month).reduce((a,v)=>a+ni(v),0);
     uploadTotals[nameKey]=total;
   });
-  const shown=[...IMPORT_TEAM,'Stephen'];
+  const shown=[...IMPORT_TEAM,'Emma'];
   document.getElementById('uploadChips').innerHTML=shown.map(p=>{
     const total=uploadTotals[p]||0;
     return`<div class="upload-chip"><div class="chip-name" style="color:${gc(p)}">${p}</div><div class="chip-val" style="color:${gc(p)}">${fmt(total)}</div><div class="chip-sub">全服務年度累積</div></div>`;
