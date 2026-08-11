@@ -972,6 +972,9 @@ function parseYearGrowth(){
 // ══════════════════════════════════════
 //  Parse：供應商/場域排名
 // ══════════════════════════════════════
+// 月份格式化：數字 7 → '2026/07'
+function ml26(m){return '2026/'+String(m).padStart(2,'0');}
+
 function parseSupplier(m){
   // A=年月 B=排名 C=供應商名稱 D=累積服務時間 E=去年累積 F=YOY G=說明
   return (raw.supplier||[]).filter(r=>r&&r[0]===ml26(m)&&r[1]).map((r,i)=>({
