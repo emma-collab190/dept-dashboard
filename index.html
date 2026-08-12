@@ -1036,10 +1036,12 @@ function relNoteKey(sysKey){return sysKey+'_m'+month;}
 function relOpenModal(key){
   relCurrentKey=relNoteKey(key);
   const names={ft:'FonTour',fk:'FonTicket',tl:'Traveline'};
+  const modal=document.getElementById('rel-modal');
+  if(modal.parentNode!==document.body)document.body.appendChild(modal);
   document.getElementById('rel-modal-title').textContent='✏️ 編輯備註 — '+names[key]+' '+month+'月';
   const notes=relGetNotes();
   document.getElementById('rel-editor').innerHTML=notes[relCurrentKey]||'';
-  document.getElementById('rel-modal').style.display='flex';
+  modal.style.display='flex';
   document.body.style.overflow='hidden';
 }
 function relCloseModal(){
