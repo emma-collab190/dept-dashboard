@@ -974,7 +974,9 @@ function parseYearGrowth(){
 // ══════════════════════════════════════
 function parseSupplier(m){
   // A=年月 B=排名 C=供應商名稱 D=累積服務時間 E=去年累積 F=YOY G=說明
-  return (raw.supplier||[]).filter(r=>r&&r[0]===ml26(m)&&r[1]).map((r,i)=>({
+  const target=ml26(m);
+  const re=/^20\d\d\/(0[1-9]|1[0-2])$/;
+  return (raw.supplier||[]).filter(r=>r&&re.test((r[0]||'').trim())&&r[0].trim()===target&&r[1]).map((r,i)=>({
     rank:r[1]||'',name:r[2]||'—',
     time:ni(r[3]),lastTime:ni(r[4]),yoy:(r[5]||'').trim(),
     note:(r[6]||'').trim(),
@@ -982,7 +984,9 @@ function parseSupplier(m){
 }
 function parseVenue(m){
   // A=年月 B=排名 C=營收類型 D=供應商名稱 E=累積服務時間 F=去年累積 G=YOY H=說明
-  return (raw.venue||[]).filter(r=>r&&r[0]===ml26(m)&&r[1]).map((r,i)=>({
+  const target=ml26(m);
+  const re=/^20\d\d\/(0[1-9]|1[0-2])$/;
+  return (raw.venue||[]).filter(r=>r&&re.test((r[0]||'').trim())&&r[0].trim()===target&&r[1]).map((r,i)=>({
     rank:r[1]||'',type:r[2]||'',name:r[3]||'—',
     time:ni(r[4]),lastTime:ni(r[5]),yoy:(r[6]||'').trim(),
     note:(r[7]||'').trim(),
