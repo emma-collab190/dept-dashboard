@@ -836,31 +836,41 @@ function parseUtil(){
   if(!rows.length)return{persons:[],depts:{},caseRateImport:[],caseRateService:[]};
   const res={persons:[],depts:{},caseRateImport:Array(12).fill(null),caseRateService:Array(12).fill(null)};
 
-  // Step1: 直接用行號取值
-  // 導入課人力利用率 = A32 = index 31，C欄開始(index 2)
-  // 客服課人力利用率 = A34 = index 33，C欄開始(index 2)
-  if(rows[31]){
-    res.depts.import=[];
-    for(let m=0;m<12;m++)res.depts.import.push(nn(rows[31][m+2]));
-  }
-  if(rows[33]){
-    res.depts.service=[];
-    for(let m=0;m<12;m++)res.depts.service.push(nn(rows[33][m+2]));
-  }
+  // Step1: 用 A 欄文字找導入課/客服課人力利用率行
+  rows.forEach(r=>{
+    if(!r)return;
+    const a=(r[0]||'').trim();
+    if(a.includes('導入課人力利用率')){
+      res.depts.import=[];
+      for(let m=0;m<12;m++)res.depts.import.push(nn(r[m+2]));
+    }
+    if(a.includes('客服課人力利用率')){
+      res.depts.service=[];
+      for(let m=0;m<12;m++)res.depts.service.push(nn(r[m+2]));
+    }
+  });
 
-  // Step2: 解析個人利用率（人名行 + 下一行月利用率）
+  // Step2: 解析個人利用率
+  // 結構：人名行 → 請假 → 標準工時(人) → 實際工時 → 月利用率
+  // 或舊結構：人名行 → 月利用率（緊接著）
+  // 統一做法：找人名行後，往後搜尋最近的「月利用率」行（不超過6行）
   let i=1;
   while(i<rows.length){
-    const r=rows[i];if(!r||!r[0]){i++;continue;}
+    const r=rows[i];
+    if(!r||!r[0]){i++;continue;}
     const cell=(r[0]||'').trim();
-    if(!cell||cell.length>12||cell.includes('課')||cell.includes('率')||cell.includes('時')||cell.includes('項')||cell.includes('整')){i++;continue;}
+    // 必須是 COLORS 裡的人名，且不含中文關鍵字
     if(!COLORS[cell]){i++;continue;}
-    const next=rows[i+1]||[];
-    const nextHasRate=(next[0]||'').includes('利用率')||(next[1]||'').includes('利用率');
+    // 往後找「月利用率」行，最多找6行
+    let rateRow=null;
+    for(let j=i+1;j<=i+6&&j<rows.length;j++){
+      const a=(rows[j][0]||'').trim();
+      if(a==='月利用率'){rateRow=rows[j];break;}
+    }
     const rates=[];
-    if(nextHasRate){for(let m=0;m<12;m++)rates.push(nn(next[m+2]));i+=2;}
-    else{for(let m=0;m<12;m++)rates.push(null);i++;}
+    for(let m=0;m<12;m++)rates.push(rateRow?nn(rateRow[m+2]):null);
     if(!res.persons.find(p=>p.name===cell))res.persons.push({name:cell,rates});
+    i++;
   }
   return res;
 }
