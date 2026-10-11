@@ -5,7 +5,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <!-- BUILD: 20260610-v4 -->
+  <!-- BUILD: 20261011-v6 (CSV no-cache + contribution period fix) -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>系統服務發展部(導入&客服)工作總覽</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;600&family=Playfair+Display:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -2249,71 +2249,141 @@ function loadContribSheet(){
   renderContribTable(el);
 }
 
+const CONTRIB_PERIODS=['2026/01~2026/05','2026/01~2026/09','2026/01~2026/12'];
+const CONTRIB_PK=CONTRIB_LOCAL_KEY+'_p_';
+const CONTRIB_LEGACY_Q=['2026Q1','2026Q2','2026Q3','2026Q4'];
+const CONTRIB_QLABEL={'2026Q1':'2026 Q1（1～3月）','2026Q2':'2026 Q2（4～6月）','2026Q3':'2026 Q3（7～9月）','2026Q4':'2026 Q4（10～12月）'};
+const CONTRIB_CSV_NAME='2026績效指標-系統服務發展部(導入&客服) - (年度)個人貢獻分析.csv';
+function cbEsc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function cbPeriodEnd(p){const m=(p||'').match(/~\s*(\d{4})\/(\d{1,2})/);return m?parseInt(m[1],10)*100+parseInt(m[2],10):0;}
+function cbGetEdit(period){
+  try{const o=JSON.parse(localStorage.getItem(CONTRIB_PK+period)||'null');return(o&&typeof o.html==='string')?o:null;}catch(e){return null;}
+}
+// 從 CSV 取出「年/月 + 分析結果」。分析結果優先取第2欄，空白時改取後面第一個有內容的欄位（避免只填詳細版欄位就整列消失）
+function cbCsvEntries(){
+  const map={};const order=[];
+  (raw.contrib||[]).slice(1).forEach(r=>{
+    if(!r||!r[0]||!r[0].trim())return;
+    const period=r[0].trim();
+    let text='';
+    for(let i=1;i<r.length;i++){if(r[i]&&r[i].trim()){text=r[i].trim();break;}}
+    if(!text)return;
+    if(!(period in map))order.push(period);
+    map[period]=text; // 同一期間出現多列時，以最後一列為準
+  });
+  return order.map(p=>({period:p,text:map[p]}));
+}
+function cbToast(msg){
+  const d=document.createElement('div');
+  d.textContent=msg;
+  d.style.cssText='position:fixed;left:50%;bottom:36px;transform:translateX(-50%);background:#2a6049;color:#fff;padding:9px 20px;border-radius:8px;font-size:13px;z-index:900;box-shadow:0 4px 16px rgba(0,0,0,.2)';
+  document.body.appendChild(d);setTimeout(()=>d.remove(),2200);
+}
+
 function renderContribTable(el){
-  const quarters=['2026Q1','2026Q2','2026Q3','2026Q4'];
-  const qLabel={'2026Q1':'2026 Q1（1～3月）','2026Q2':'2026 Q2（4～6月）','2026Q3':'2026 Q3（7～9月）','2026Q4':'2026 Q4（10～12月）'};
+  if(!el)return;
+  const entries=cbCsvEntries();
+  const csvMap={};entries.forEach(e=>csvMap[e.period]=e.text);
+  const blocks=[];
 
-  // ── CSV 資料區塊（年/月 + 分析結果）──
-  const csvRows=(raw.contrib||[]).slice(1).filter(r=>r&&r[0]&&r[0].trim()&&r[1]&&r[1].trim());
-  const csvBlocks=csvRows.map((r,ri)=>{
-    const period=(r[0]||'').trim();
-    const csvText=(r[1]||'').trim();
-    const editKey=CONTRIB_LOCAL_KEY+'_csv_'+ri;
-    const saved=localStorage.getItem(editKey);
-    const displayHtml=saved||('<span style="white-space:pre-wrap">'+csvText+'</span>');
-    // 用 data 屬性存參數，避免引號衝突
-    return`<div class="card" style="padding:20px;margin-bottom:12px">
+  // ── CSV 區塊（若本機有編輯，且編輯當時的 CSV 內容與現在相同才套用；CSV 已更新就顯示最新 CSV）──
+  entries.forEach(e=>{
+    const ed=cbGetEdit(e.period);
+    let html,note='';
+    if(ed&&ed.base===e.text){html=ed.html;note='<span style="font-size:11px;color:var(--ink3);margin-left:8px">（本機已編輯）</span>';}
+    else{
+      if(ed)localStorage.removeItem(CONTRIB_PK+e.period); // CSV 已更新，捨棄過期的本機編輯
+      html='<span style="white-space:pre-wrap">'+cbEsc(e.text)+'</span>';
+    }
+    blocks.push({period:e.period,end:cbPeriodEnd(e.period),html,note});
+  });
+
+  // ── 手動新增的期間（CSV 沒有的期間）──
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k||!k.startsWith(CONTRIB_PK))continue;
+    const period=k.slice(CONTRIB_PK.length);
+    if(period in csvMap)continue;
+    const ed=cbGetEdit(period);
+    if(ed&&ed.html&&ed.html.trim())blocks.push({period,end:cbPeriodEnd(period),html:ed.html,note:'<span style="font-size:11px;color:var(--accent2);margin-left:8px">（手動新增）</span>'});
+  }
+  // ── 舊版季別區塊（若瀏覽器裡還有，保留顯示）──
+  CONTRIB_LEGACY_Q.forEach(q=>{
+    const h=localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q);
+    if(h)blocks.push({period:CONTRIB_QLABEL[q],legacy:q,end:0,html:h,note:''});
+  });
+
+  blocks.sort((x,y)=>y.end-x.end); // 最新期間排最前面
+
+  const blockHtml=blocks.map(bk=>`<div class="card" data-block="${cbEsc(bk.period)}" style="padding:20px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--accent)">
-        <span style="font-size:13px;font-weight:700;color:var(--accent)">${period}</span>
-        <button class="cb-csv-edit-btn" data-key="${editKey}" data-label="${period}" data-default="${encodeURIComponent(csvText)}" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);cursor:pointer;font-size:12px;color:var(--ink2)">✏️ 編輯</button>
+        <span style="font-size:13px;font-weight:700;color:var(--accent)">${cbEsc(bk.period)}${bk.note}</span>
+        <button class="cb-edit-btn" data-period="${cbEsc(bk.period)}" ${bk.legacy?'data-legacy="'+bk.legacy+'"':''} style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);cursor:pointer;font-size:12px;color:var(--ink2)">✏️ 編輯</button>
       </div>
-      <div style="line-height:1.8;font-size:14px">${displayHtml}</div>
-    </div>`;
-  }).join('');
+      <div style="line-height:1.8;font-size:14px">${bk.html}</div>
+    </div>`).join('');
 
-  // ── localStorage 手動新增的季別區塊 ──
-  const qBlocks=quarters.map(q=>{
-    const qHtml=localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q);
-    if(!qHtml)return'';
-    return`<div class="card" style="padding:20px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--accent)">
-        <span style="font-size:14px;font-weight:700;color:var(--accent)">${qLabel[q]}</span>
-        <button onclick="cbOpenModalQ('${q}')" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);cursor:pointer;font-size:12px;color:var(--ink2)">✏️ 編輯</button>
-      </div>
-      <div style="line-height:1.8;font-size:14px">${qHtml}</div>
-    </div>`;
-  }).join('');
+  // ── 狀態提示：讓「CSV 沒讀到」不再是靜默失敗 ──
+  let notice='';
+  if(raw.contrib==null){
+    notice=`<div style="background:#fde8e8;border:1px solid #f0b4b4;color:#c62828;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px">⚠️ 沒有讀到個人貢獻分析 CSV。請確認 GitHub 上的檔名與下列完全一致，再按 Ctrl+Shift+R 重新整理：<br><span style="font-family:'JetBrains Mono',monospace;font-size:12px">${cbEsc(CONTRIB_CSV_NAME)}</span></div>`;
+  }else if(entries.length===0){
+    notice=`<div style="background:#fff4e0;border:1px solid #f0d49c;color:#8a5a00;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px">ℹ️ 已讀到 CSV（${raw.contrib.length} 列），但沒有可顯示的內容。請確認每列的第一欄（年/月，例如 2026/01~2026/09）與分析內容都有填寫。</div>`;
+  }
 
-  const hasAnything = csvRows.length>0 || quarters.some(q=>localStorage.getItem(CONTRIB_LOCAL_KEY+'_'+q));
-
-  // 渲染後綁定 CSV 編輯按鈕事件
-  const contribEl=el;
-  const bindCsvEdits=()=>{
-    contribEl.querySelectorAll('.cb-csv-edit-btn').forEach(btn=>{
-      btn.onclick=function(){
-        const key=this.getAttribute('data-key');
-        const label=this.getAttribute('data-label');
-        const def=decodeURIComponent(this.getAttribute('data-default')||'');
-        cbOpenModalQ(key,label,def);
-      };
-    });
-  };
+  const menuItems=CONTRIB_PERIODS.map(p=>`<div class="cb-menu-item" data-period="${p}" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${p}${(p in csvMap||cbGetEdit(p))?' <span style="color:var(--ink3);font-size:11px">· 已有內容</span>':''}</div>`).join('');
 
   el.innerHTML=`
     <div class="contrib-toolbar">
       <div style="position:relative;display:inline-block" id="cbAddWrap">
-        <button class="contrib-edit-btn" onmousedown="event.preventDefault()" onclick="cbToggleQuarterMenu()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
-        <div id="cbQuarterMenu" onmousedown="event.preventDefault()" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:160px;overflow:hidden">
-          <div onclick="cbOpenModalQ('2026Q1')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q1（1～3月）</div>
-          <div onclick="cbOpenModalQ('2026Q2')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q2（4～6月）</div>
-          <div onclick="cbOpenModalQ('2026Q3')" style="padding:9px 16px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">2026 Q3（7～9月）</div>
-          <div onclick="cbOpenModalQ('2026Q4')" style="padding:9px 16px;cursor:pointer;font-size:13px">2026 Q4（10～12月）</div>
+        <button class="contrib-edit-btn" id="cbAddBtn" onmousedown="event.preventDefault()" style="background:var(--accent);color:#fff;border-color:var(--accent)">＋ 新增</button>
+        <div id="cbQuarterMenu" onmousedown="event.preventDefault()" style="display:none;position:absolute;top:110%;left:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:100;min-width:210px;overflow:hidden">
+          ${menuItems}
+          <div class="cb-menu-custom" style="padding:9px 16px;cursor:pointer;font-size:13px;color:var(--blue)">自訂區間…</div>
         </div>
       </div>
       <button class="contrib-edit-btn" onclick="clearAllContrib()" style="color:#c94f3a;border-color:#c94f3a;font-size:12px">🗑️ 清除手動新增</button>
     </div>
-    ${hasAnything ? csvBlocks+qBlocks : '<div class="no-data" style="padding:40px;text-align:center;color:var(--ink3)">尚無資料，請上傳個人貢獻分析 CSV 或點「＋ 新增」填寫</div>'}`;
-  setTimeout(bindCsvEdits,0);
+    ${notice}
+    ${blocks.length?blockHtml:(notice?'':'<div class="no-data" style="padding:40px;text-align:center;color:var(--ink3)">尚無資料，請上傳個人貢獻分析 CSV 或點「＋ 新增」填寫</div>')}`;
+
+  // 綁定事件（直接綁定，不依賴 inline onclick 與計時器）
+  const addBtn=el.querySelector('#cbAddBtn');
+  if(addBtn)addBtn.onclick=function(e){e.stopPropagation();cbToggleQuarterMenu();};
+  el.querySelectorAll('.cb-menu-item').forEach(it=>{it.onclick=function(){cbOpenPeriod(this.getAttribute('data-period'));};});
+  const cu=el.querySelector('.cb-menu-custom');
+  if(cu)cu.onclick=function(){cbAddCustomPeriod();};
+  el.querySelectorAll('.cb-edit-btn').forEach(btn=>{
+    btn.onclick=function(){
+      const lg=this.getAttribute('data-legacy');
+      if(lg)cbOpenModalQ(lg);else cbOpenPeriod(this.getAttribute('data-period'));
+    };
+  });
+}
+
+function cbAddCustomPeriod(){
+  const m=document.getElementById('cbQuarterMenu');if(m)m.style.display='none';
+  const v=(prompt('請輸入統計區間，格式：2026/01~2026/06','2026/01~2026/')||'').trim();
+  if(!v)return;
+  if(!/^\d{4}\/\d{2}~\d{4}\/\d{2}$/.test(v)){alert('格式不正確，請輸入像 2026/01~2026/06 的區間');return;}
+  cbOpenPeriod(v);
+}
+
+function cbOpenPeriod(period){
+  const m=document.getElementById('cbQuarterMenu');if(m)m.style.display='none';
+  cbCurrentQuarter='P:'+period;
+  const csvText=(cbCsvEntries().find(e=>e.period===period)||{}).text;
+  const ed=cbGetEdit(period);
+  let html='';
+  if(ed&&(csvText===undefined||ed.base===csvText))html=ed.html;
+  else if(csvText!==undefined)html='<p style="white-space:pre-wrap">'+cbEsc(csvText)+'</p>';
+  const modal=document.getElementById('cb-modal');
+  modal.querySelector('span').textContent='✏️ '+period;
+  modal.style.display='flex';
+  document.body.style.overflow='hidden';
+  document.getElementById('cb-editor').innerHTML=html;
+  cbUndoStack.length=0;cbRedoStack.length=0;
+  setTimeout(()=>{const e=document.getElementById('cb-editor');if(e){e.focus();cbSnapshot();}},100);
 }
 
 function clearAllContrib(){
@@ -2323,6 +2393,7 @@ function clearAllContrib(){
   localStorage.removeItem(CONTRIB_LOCAL_KEY+'_2026Q2');
   localStorage.removeItem(CONTRIB_LOCAL_KEY+'_2026Q3');
   localStorage.removeItem(CONTRIB_LOCAL_KEY+'_2026Q4');
+  Object.keys(localStorage).filter(k=>k.startsWith(CONTRIB_LOCAL_KEY+'_p_')||k.startsWith(CONTRIB_LOCAL_KEY+'_csv_')).forEach(k=>localStorage.removeItem(k));
   contribEditRows=[];
   renderContribTable(document.getElementById('contribContent'));
 }
@@ -2393,16 +2464,28 @@ function cbCloseModal(force){
 }
 function cbSave(){
   const html=document.getElementById('cb-editor').innerHTML;
-  if(cbCurrentQuarter){
+  let target='';
+  if(cbCurrentQuarter&&cbCurrentQuarter.startsWith('P:')){
+    const period=cbCurrentQuarter.slice(2);
+    const csvText=(cbCsvEntries().find(e=>e.period===period)||{}).text;
+    localStorage.setItem(CONTRIB_PK+period,JSON.stringify({html,base:csvText===undefined?'':csvText}));
+    target=period;
+  }else if(cbCurrentQuarter){
     const isCustomKey=cbCurrentQuarter.startsWith(CONTRIB_LOCAL_KEY+'_csv_');
     const key=isCustomKey?cbCurrentQuarter:CONTRIB_LOCAL_KEY+'_'+cbCurrentQuarter;
-    localStorage.setItem(key, html);
-  } else {
+    localStorage.setItem(key,html);
+  }else{
     contribEditRows=[['html_content',html]];
     localStorage.setItem(CONTRIB_LOCAL_KEY,JSON.stringify(contribEditRows));
   }
   cbCloseModal(true);
-  renderContribTable(document.getElementById('contribContent'));
+  const el=document.getElementById('contribContent');
+  renderContribTable(el);
+  if(target){
+    const card=[...el.querySelectorAll('[data-block]')].find(c=>c.getAttribute('data-block')===target);
+    if(card&&card.scrollIntoView)card.scrollIntoView({behavior:'smooth',block:'start'});
+    cbToast('✅ 已儲存：'+target+'（僅存在此瀏覽器；要所有人看到請更新 GitHub 的 CSV）');
+  }
 }
 function openContribEdit(){cbOpenModal();}
 function closeContribEdit(){cbCloseModal(true);}
@@ -2462,7 +2545,7 @@ async function autoLoadCSVs(){
   const promises = AUTO_CSV.map(async ({key, file}) => {
     try {
       const url = BASE_URL + encodeURIComponent(file);
-      const res = await fetch(url);
+      const res = await fetch(url + '?v=' + Date.now(), {cache: 'no-store'});
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
       raw[key] = parseCSV(text);
